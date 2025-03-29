@@ -1,22 +1,62 @@
-import { forwardRef } from 'react';
-import { Text, TouchableOpacity, TouchableOpacityProps, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import React from 'react';
+import {
+  Text,
+  TouchableOpacity,
+  View,
+  TouchableOpacityProps,
+  ActivityIndicator,
+} from 'react-native';
 
-type ButtonProps = {
-  title: string;
-} & TouchableOpacityProps;
+import cn from '~/utils/cn';
 
-export const Button = forwardRef<View, ButtonProps>(({ title, ...touchableProps }, ref) => {
+// Button props
+export interface ButtonProps extends TouchableOpacityProps {
+  title: React.ReactNode;
+  onPress: () => void;
+  loading?: boolean;
+  variant?: 'primary' | 'secondary';
+  disabled?: boolean;
+  className?: string;
+  textClassName?: string;
+}
+
+// Button component
+export default function Button({
+  title,
+  onPress,
+  loading = false,
+  variant = 'primary',
+  disabled = false,
+  className,
+  textClassName,
+  ...rest
+}: ButtonProps) {
+  // Gradient colors based on the design
+  const gradientColors = ['#943DFF', '#2938DC'];
+
   return (
     <TouchableOpacity
-      ref={ref}
-      {...touchableProps}
-      className={`${styles.button} ${touchableProps.className}`}>
-      <Text className={styles.buttonText}>{title}</Text>
+      activeOpacity={0.8}
+      onPress={onPress}
+      disabled={disabled || loading}
+      className={cn('overflow-hidden rounded-full', disabled && 'opacity-60', className)}
+      {...rest}>
+      <LinearGradient
+        colors={gradientColors as [string, string, ...string[]]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        className="items-center justify-center ">
+        <View className="flex-row items-center justify-center px-6 py-4 ">
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text className={cn('text-center text-lg font-semibold text-white', textClassName)}>
+              {title}
+            </Text>
+          )}
+        </View>
+      </LinearGradient>
     </TouchableOpacity>
   );
-});
-
-const styles = {
-  button: 'items-center bg-indigo-500 rounded-[28px] shadow-md p-4',
-  buttonText: 'text-white text-lg font-semibold text-center',
-};
+}
