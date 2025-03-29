@@ -93,9 +93,10 @@ interface PromptInputSectionProps {
 
 function PromptInputSection({ control, onSurpriseMe }: PromptInputSectionProps) {
   return (
-    <View className="mb-4">
+    <View>
+      <Text className="mb-4 text-center text-xl font-semibold text-white">AI Logo</Text>
       <View className="mb-2 flex-row items-center justify-between">
-        <Text className="text-xl font-semibold text-white">Enter Your Prompt</Text>
+        <Text className="text-2xl font-semibold text-white">Enter Your Prompt</Text>
         <TouchableOpacity onPress={onSurpriseMe} className="flex-row items-center  px-3 py-2">
           <Text className="mr-2 text-lg">🎲</Text>
           <Text className="text-sm text-white">Surprise me</Text>
