@@ -1,7 +1,7 @@
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, router } from 'expo-router';
-import { useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import {
   Image,
   KeyboardAvoidingView,
@@ -23,25 +23,27 @@ import {
   LOGO_STYLES,
   MAX_PROMPT_LENGTH,
 } from '~/constants/logo';
-import { Generation, LogoStyle } from '~/types/generation';
+import { LogoFormValues, LogoStyle } from '~/types/generation';
 import cn from '~/utils/cn';
 
 export default function LogoGenerator() {
-  const [generation, setGeneration] = useState<Partial<Generation>>({
-    prompt: DEFAULT_PROMPT,
-    style: 'none',
-    status: 'processing',
+  // Initialize react-hook-form
+  const { control, handleSubmit, setValue, watch } = useForm<LogoFormValues>({
+    defaultValues: {
+      prompt: DEFAULT_PROMPT,
+      style: 'none' as LogoStyle,
+    },
   });
 
-  const updateGeneration = (updates: Partial<Generation>) => {
-    setGeneration((prev) => ({ ...prev, ...updates }));
-  };
+  // Watch values for UI feedback
+  const selectedStyle = watch('style');
 
   const handleSurpriseMe = () => {
-    updateGeneration({ prompt: DEFAULT_PROMPT });
+    setValue('prompt', DEFAULT_PROMPT);
   };
 
-  const handleCreate = () => {
+  const handleCreate = (data: LogoFormValues) => {
+    console.log('Form submitted with:', data);
     router.push('/output');
   };
 
@@ -61,16 +63,9 @@ export default function LogoGenerator() {
         className="flex-1">
         <ScrollView className="flex-1">
           <View>
-            <PromptInputSection
-              prompt={generation.prompt}
-              onPromptChange={(text) => updateGeneration({ prompt: text })}
-              onSurpriseMe={handleSurpriseMe}
-            />
+            <PromptInputSection control={control} onSurpriseMe={handleSurpriseMe} />
 
-            <LogoStylesSection
-              selectedStyle={generation.style}
-              onStyleSelect={(style) => updateGeneration({ style })}
-            />
+            <LogoStylesSection control={control} selectedStyle={selectedStyle} />
           </View>
         </ScrollView>
 
@@ -83,7 +78,7 @@ export default function LogoGenerator() {
                 <SparkleIcon size={18} className="ml-2" />
               </View>
             }
-            onPress={handleCreate}
+            onPress={handleSubmit(handleCreate)}
           />
         </View>
       </KeyboardAvoidingView>
@@ -92,42 +87,57 @@ export default function LogoGenerator() {
 }
 
 interface PromptInputSectionProps {
-  prompt?: string;
-  onPromptChange: (text: string) => void;
+  control: any;
   onSurpriseMe: () => void;
 }
 
-function PromptInputSection({ prompt, onPromptChange, onSurpriseMe }: PromptInputSectionProps) {
+function PromptInputSection({ control, onSurpriseMe }: PromptInputSectionProps) {
   return (
     <View className="mb-4">
       <View className="mb-2 flex-row items-center justify-between">
         <Text className="text-xl font-semibold text-white">Enter Your Prompt</Text>
-        <TouchableOpacity
-          onPress={onSurpriseMe}
-          className="rounded-full border border-gray-400 bg-transparent px-2 py-1">
+        <TouchableOpacity onPress={onSurpriseMe} className="flex-row items-center  px-3 py-2">
+          <Text className="mr-2 text-lg">🎲</Text>
           <Text className="text-sm text-white">Surprise me</Text>
         </TouchableOpacity>
       </View>
 
       <View className="overflow-hidden rounded-xl">
         <LinearGradient
-          colors={GRADIENT_COLORS.primary as [string, string]}
+          colors={GRADIENT_COLORS.primary as readonly [string, string]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           className="absolute h-full w-full"
         />
         <BlurView intensity={BLUR_INTENSITY} tint="dark" className="p-4">
-          <TextInput
-            className="min-h-[100px] text-base text-white"
-            placeholder="Describe your logo idea..."
-            placeholderTextColor="#6b7280"
-            multiline
-            value={prompt}
-            onChangeText={onPromptChange}
+          <Controller
+            control={control}
+            name="prompt"
+            rules={{
+              required: 'Prompt is required',
+              maxLength: {
+                value: MAX_PROMPT_LENGTH,
+                message: `Prompt cannot exceed ${MAX_PROMPT_LENGTH} characters`,
+              },
+            }}
+            render={({ field: { onChange, onBlur, value }, fieldState: { error } }) => (
+              <>
+                <TextInput
+                  className="min-h-[100px] text-base text-white"
+                  placeholder="Describe your logo idea..."
+                  placeholderTextColor="#6b7280"
+                  multiline
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                />
+                {error && <Text className="mt-1 text-red-500">{error.message}</Text>}
+                <Text className="mt-2 text-right text-gray-400">
+                  {value?.length || 0}/{MAX_PROMPT_LENGTH}
+                </Text>
+              </>
+            )}
           />
-          <Text className="mt-2 text-right text-gray-400">
-            {prompt?.length || 0}/{MAX_PROMPT_LENGTH}
-          </Text>
         </BlurView>
       </View>
     </View>
@@ -135,42 +145,52 @@ function PromptInputSection({ prompt, onPromptChange, onSurpriseMe }: PromptInpu
 }
 
 interface LogoStylesSectionProps {
-  selectedStyle?: LogoStyle;
-  onStyleSelect: (style: LogoStyle) => void;
+  control: any;
+  selectedStyle: LogoStyle;
 }
 
-function LogoStylesSection({ selectedStyle, onStyleSelect }: LogoStylesSectionProps) {
+function LogoStylesSection({ control, selectedStyle }: LogoStylesSectionProps) {
   return (
     <View className="mb-6">
       <Text className="mb-2 text-xl font-semibold text-white">Logo Styles</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
-        {LOGO_STYLES.map((style) => (
-          <TouchableOpacity
-            key={style.id}
-            className={cn(
-              'mr-4 items-center',
-              selectedStyle === style.id ? 'opacity-100' : 'opacity-80'
-            )}
-            onPress={() => onStyleSelect(style.id)}>
-            <View
-              className={cn(
-                'h-[100px] w-[100px] overflow-hidden rounded-3xl',
-                selectedStyle === style.id ? 'border-2 border-white' : 'border border-gray-600',
-                style.id === 'none' ? 'bg-[#1E1836]' : 'bg-[#2A2542]'
-              )}>
-              <Image source={style.image} className="h-full w-full" resizeMode="cover" />
-            </View>
-            <Text
-              className={cn(
-                'mt-1 text-center text-[13px]',
-                selectedStyle === style.id
-                  ? 'font-[700px] text-white'
-                  : 'font-[400px] text-gray-400'
-              )}>
-              {style.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        <Controller
+          control={control}
+          name="style"
+          render={({ field: { onChange } }) => (
+            <>
+              {LOGO_STYLES.map((style) => (
+                <TouchableOpacity
+                  key={style.id}
+                  className={cn(
+                    'mr-4 items-center',
+                    selectedStyle === style.id ? 'opacity-100' : 'opacity-80'
+                  )}
+                  onPress={() => onChange(style.id)}>
+                  <View
+                    className={cn(
+                      'h-[100px] w-[100px] overflow-hidden rounded-3xl',
+                      selectedStyle === style.id
+                        ? 'border-2 border-white'
+                        : 'border border-gray-600',
+                      style.id === 'none' ? 'bg-[#1E1836]' : 'bg-[#2A2542]'
+                    )}>
+                    <Image source={style.image} className="h-full w-full" resizeMode="cover" />
+                  </View>
+                  <Text
+                    className={cn(
+                      'mt-1 text-center text-[13px]',
+                      selectedStyle === style.id
+                        ? 'font-[700px] text-white'
+                        : 'font-[400px] text-gray-400'
+                    )}>
+                    {style.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </>
+          )}
+        />
       </ScrollView>
     </View>
   );
