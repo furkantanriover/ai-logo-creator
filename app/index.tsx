@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 
+import AuthStatus from '~/components/AuthStatus';
 import Button from '~/components/Button';
 import Container from '~/components/Container';
 import SparkleIcon from '~/components/SparkleIcon';
@@ -27,7 +28,6 @@ import { LogoFormValues, LogoStyle } from '~/types/generation';
 import cn from '~/utils/cn';
 
 export default function LogoGenerator() {
-  // Initialize react-hook-form
   const { control, handleSubmit, setValue, watch } = useForm<LogoFormValues>({
     defaultValues: {
       prompt: DEFAULT_PROMPT,
@@ -35,7 +35,6 @@ export default function LogoGenerator() {
     },
   });
 
-  // Watch values for UI feedback
   const selectedStyle = watch('style');
 
   const handleSurpriseMe = () => {
@@ -63,6 +62,11 @@ export default function LogoGenerator() {
         className="flex-1">
         <ScrollView className="flex-1">
           <View>
+            {/* Auth Status Bar */}
+            <View className="mb-4">
+              <AuthStatus />
+            </View>
+
             <PromptInputSection control={control} onSurpriseMe={handleSurpriseMe} />
 
             <LogoStylesSection control={control} selectedStyle={selectedStyle} />

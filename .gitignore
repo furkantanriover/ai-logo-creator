@@ -153,3 +153,8 @@ docs/
 
 expo-env.d.ts
 # @end expo-cli
+
+#ignore google-services.json
+google-services.json
+#ignore googleservice-info.plist
+googleservice-info.plist

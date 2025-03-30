@@ -10,7 +10,6 @@ export interface Generation {
   createdAt?: Date;
 }
 
-// Form values type for React Hook Form
 export type LogoFormValues = {
   prompt: string;
   style: LogoStyle;
