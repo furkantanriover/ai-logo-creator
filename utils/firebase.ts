@@ -1,4 +1,5 @@
 import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
 import { getFunctions } from 'firebase/functions';
 import { Platform } from 'react-native';
 
@@ -34,6 +35,9 @@ const firebaseConfig = {
 // Firebase uygulamasını başlat
 const app = initializeApp(firebaseConfig);
 
+// Standard Firebase Auth başlatma
+const auth = getAuth(app);
+
 // Firebase Functions servisini başlat
 const functions = getFunctions(app);
 
@@ -41,7 +45,7 @@ const functions = getFunctions(app);
 // connectFunctionsEmulator(functions, "localhost", 5001);
 
 // Firebase servislerini export et
-export { app, functions };
+export { app, auth, functions };
 
 // Geriye dönük uyumluluk için default export
 export default app;

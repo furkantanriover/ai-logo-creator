@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, router } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import {
+  ActivityIndicator,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -24,7 +25,13 @@ import {
   LOGO_STYLES,
   MAX_PROMPT_LENGTH,
 } from '~/constants/logo';
-import { LogoFormValues, LogoStyle } from '~/types/generation';
+import { useGeneratePrompt } from '~/hooks/useGeneratePrompt';
+import {
+  LogoFormValues,
+  LogoStyle,
+  PromptInputSectionProps,
+  LogoStylesSectionProps,
+} from '~/types/generation';
 import cn from '~/utils/cn';
 
 export default function LogoGenerator() {
@@ -37,8 +44,19 @@ export default function LogoGenerator() {
 
   const selectedStyle = watch('style');
 
+  const { mutate: generatePrompt, isPending } = useGeneratePrompt();
+
   const handleSurpriseMe = () => {
-    setValue('prompt', DEFAULT_PROMPT);
+    generatePrompt(undefined, {
+      onSuccess: (aiPrompt) => {
+        if (aiPrompt) {
+          setValue('prompt', aiPrompt);
+        }
+      },
+      onError: (error) => {
+        console.error('Error generating prompt:', error);
+      },
+    });
   };
 
   const handleCreate = (data: LogoFormValues) => {
@@ -62,18 +80,20 @@ export default function LogoGenerator() {
         className="flex-1">
         <ScrollView className="flex-1">
           <View>
-            {/* Auth Status Bar */}
             <View className="mb-4">
               <AuthStatus />
             </View>
 
-            <PromptInputSection control={control} onSurpriseMe={handleSurpriseMe} />
+            <PromptInputSection
+              control={control}
+              onSurpriseMe={handleSurpriseMe}
+              isGenerating={isPending}
+            />
 
             <LogoStylesSection control={control} selectedStyle={selectedStyle} />
           </View>
         </ScrollView>
 
-        {/* Create Button - Fixed at bottom */}
         <View>
           <Button
             title={
@@ -90,20 +110,24 @@ export default function LogoGenerator() {
   );
 }
 
-interface PromptInputSectionProps {
-  control: any;
-  onSurpriseMe: () => void;
-}
-
-function PromptInputSection({ control, onSurpriseMe }: PromptInputSectionProps) {
+function PromptInputSection({ control, onSurpriseMe, isGenerating }: PromptInputSectionProps) {
   return (
     <View>
       <Text className="mb-4 text-center text-xl font-semibold text-white">AI Logo</Text>
       <View className="mb-2 flex-row items-center justify-between">
         <Text className="text-2xl font-semibold text-white">Enter Your Prompt</Text>
-        <TouchableOpacity onPress={onSurpriseMe} className="flex-row items-center  px-3 py-2">
-          <Text className="mr-2 text-lg">🎲</Text>
-          <Text className="text-sm text-white">Surprise me</Text>
+        <TouchableOpacity
+          onPress={onSurpriseMe}
+          disabled={isGenerating}
+          className="flex-row items-center px-3 py-2">
+          {isGenerating ? (
+            <ActivityIndicator size="small" color="#fff" className="mr-2" />
+          ) : (
+            <Text className="mr-2 text-lg">🎲</Text>
+          )}
+          <Text className="text-sm text-white">
+            {isGenerating ? 'Generating...' : 'Surprise me'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -147,11 +171,6 @@ function PromptInputSection({ control, onSurpriseMe }: PromptInputSectionProps) 
       </View>
     </View>
   );
-}
-
-interface LogoStylesSectionProps {
-  control: any;
-  selectedStyle: LogoStyle;
 }
 
 function LogoStylesSection({ control, selectedStyle }: LogoStylesSectionProps) {
