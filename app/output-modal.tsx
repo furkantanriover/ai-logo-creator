@@ -3,9 +3,11 @@ import { BlurView } from "expo-blur";
 import * as Clipboard from "expo-clipboard";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, Stack, useLocalSearchParams } from "expo-router";
+import * as FileSystem from "expo-file-system";
+import * as MediaLibrary from "expo-media-library";
 import { StatusBar } from "expo-status-bar";
 import { ReactNode, useState } from "react";
-import { ActivityIndicator, Platform, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Platform, Text, TouchableOpacity, View } from "react-native";
 
 import Container from "~/components/Container";
 import ImageLoadingIndicator from "~/components/ImageLoadingIndicator";
@@ -37,6 +39,7 @@ function ModalLayout({ children, onClose }: { children: ReactNode; onClose: () =
 
 export default function OutputModal() {
   const [copied, setCopied] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const { projectId } = useLocalSearchParams<{ projectId: string }>();
   const { data: project, isLoading, isError } = useProjectById(projectId);
 
@@ -49,6 +52,64 @@ export default function OutputModal() {
       await Clipboard.setStringAsync(project.prompt);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const downloadLogo = async () => {
+    if (!project?.imageUrl) {
+      Alert.alert("Error", "No image available to download");
+      return;
+    }
+
+    try {
+      setDownloading(true);
+
+      // Request permissions first
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+
+      if (status !== MediaLibrary.PermissionStatus.GRANTED) {
+        Alert.alert("Permission Denied", "We need permission to save images to your device.", [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Settings",
+            onPress: () => MediaLibrary.requestPermissionsAsync(),
+          },
+        ]);
+        setDownloading(false);
+        return;
+      }
+
+      // Create a unique filename based on the timestamp and project ID
+      const filename = `ai-logo-${Date.now()}.jpg`;
+      const fileUri = `${FileSystem.documentDirectory}${filename}`;
+
+      // Download the image
+      const downloadResult = await FileSystem.downloadAsync(project.imageUrl, fileUri);
+
+      if (downloadResult.status !== 200) {
+        throw new Error("Failed to download image");
+      }
+
+      // Save to media library
+      const asset = await MediaLibrary.createAssetAsync(fileUri);
+
+      // Create an album if it doesn't exist
+      const album = await MediaLibrary.getAlbumAsync("AI Logo Creator");
+      if (album === null) {
+        await MediaLibrary.createAlbumAsync("AI Logo Creator", asset, false);
+      } else {
+        await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
+      }
+
+      // Delete the temporary file
+      await FileSystem.deleteAsync(fileUri, { idempotent: true });
+
+      Alert.alert("Success", "Logo saved to your device in the 'AI Logo Creator' album");
+    } catch (error) {
+      console.error("Error downloading logo:", error);
+      Alert.alert("Error", "Failed to download logo. Please try again.");
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -94,12 +155,43 @@ export default function OutputModal() {
       <ModalLayout onClose={handleClose}>
         <View className="mb-5 overflow-hidden rounded-3xl">
           {project.imageUrl ? (
-            <View className="h-[400px] w-full">
+            <View className="relative h-[400px] w-full">
               <ImageLoadingIndicator
                 uri={project.imageUrl}
                 resizeMode="contain"
                 className="h-full w-full"
               />
+
+              {/* Bottom action bar with blur effect */}
+              <BlurView
+                intensity={BLUR_INTENSITY}
+                tint="dark"
+                className="absolute bottom-0 left-0 right-0 overflow-hidden"
+                style={{ borderBottomLeftRadius: 24, borderBottomRightRadius: 24 }}>
+                <TouchableOpacity
+                  onPress={downloadLogo}
+                  disabled={downloading}
+                  className="flex-row items-center justify-center p-4"
+                  activeOpacity={0.7}>
+                  <View className="flex-row items-center">
+                    {downloading ? (
+                      <ActivityIndicator size="small" color="#fff" className="mr-3" />
+                    ) : (
+                      <View className="mr-3 rounded-full bg-white/20 p-2">
+                        <Ionicons name="download-outline" size={20} color="#fff" />
+                      </View>
+                    )}
+                    <View>
+                      <Text className="text-base font-medium text-white">
+                        {downloading ? "Downloading..." : "Save to Device"}
+                      </Text>
+                      <Text className="text-xs text-gray-300">
+                        {downloading ? "Please wait" : "Store this logo in your gallery"}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              </BlurView>
             </View>
           ) : (
             <View className="h-[300px] w-full items-center justify-center bg-gray-800/30">
