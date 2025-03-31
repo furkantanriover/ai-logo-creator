@@ -1,6 +1,4 @@
-import React from 'react';
-import Svg, { Path } from 'react-native-svg';
-import cn from '~/utils/cn';
+import Svg, { Path } from "react-native-svg";
 
 interface SparkleIconProps {
   size?: number;
@@ -8,7 +6,7 @@ interface SparkleIconProps {
   className?: string;
 }
 
-export default function SparkleIcon({ size = 21, color = '#FAFAFA', className }: SparkleIconProps) {
+export default function SparkleIcon({ size = 21, color = "#FAFAFA", className }: SparkleIconProps) {
   return (
     <Svg
       width={size}

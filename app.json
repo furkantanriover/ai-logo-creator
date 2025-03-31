@@ -21,6 +21,14 @@
             "useFrameworks": "static"
           }
         }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow AI Logo Creator to access your photos",
+          "savePhotosPermission": "Allow AI Logo Creator to save photos",
+          "isAccessMediaLocationEnabled": true
+        }
       ]
     ],
     "experiments": {
@@ -35,11 +43,17 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "googleServicesFile": "./GoogleService-Info.plist",
-      "bundleIdentifier": "com.furkant.ailogocreator"
+      "bundleIdentifier": "com.furkant.ailogocreator",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Allow AI Logo Creator to access your photos to save generated logos",
+        "NSPhotoLibraryAddUsageDescription": "Allow AI Logo Creator to save generated logos to your photo library"
+      }
     },
     "android": {
       "googleServicesFile": "./google-services.json",
@@ -47,7 +61,22 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.furkant.ailogocreator"
+      "package": "com.furkant.ailogocreator",
+      "permissions": [
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_EXTERNAL_STORAGE",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_MEDIA_LOCATION"
+      ]
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "6aebeb36-d956-4fa5-9599-4d088e906daa"
+      }
     }
   }
 }

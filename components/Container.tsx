@@ -1,7 +1,7 @@
-import { SafeAreaView, View, ViewProps, ImageBackground } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ImageBackground, SafeAreaView, View, ViewProps } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import cn from '~/utils/cn';
+import cn from "~/utils/cn";
 
 interface ContainerProps extends ViewProps {
   children: React.ReactNode;
@@ -19,12 +19,12 @@ export default function Container({
 
   return (
     <ImageBackground
-      source={require('~/assets/bg-gradient.png')}
+      source={require("~/assets/bg-gradient.png")}
       className="flex-1"
       resizeMode="cover">
       <SafeAreaView className="flex-1">
         <View
-          className={cn('flex-1', padded && 'px-6 py-4', className)}
+          className={cn("flex-1", padded && "px-6 py-4", className)}
           style={{
             paddingBottom: Math.max(insets.bottom, 16),
           }}

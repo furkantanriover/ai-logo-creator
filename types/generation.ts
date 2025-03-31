@@ -1,5 +1,5 @@
-export type LogoStyle = 'none' | 'monogram' | 'abstract' | 'mascot';
-export type GenerationStatus = 'processing' | 'done' | 'error';
+export type LogoStyle = "none" | "monogram" | "abstract" | "mascot";
+export type GenerationStatus = "processing" | "done" | "error";
 
 export interface Generation {
   id?: string;
@@ -13,6 +13,11 @@ export interface Generation {
 export type LogoFormValues = {
   prompt: string;
   style: LogoStyle;
+  userId: string;
+};
+
+export type GeneratePromptParams = {
+  style: LogoStyle;
 };
 
 export type GeneratePromptResponse = {
@@ -23,12 +28,12 @@ export type GeneratePromptResponse = {
 
 // Component props types
 export interface PromptInputSectionProps {
-  control: any; // Note: This could be more strictly typed if needed
+  control: any;
   onSurpriseMe: () => void;
   isGenerating: boolean;
 }
 
 export interface LogoStylesSectionProps {
-  control: any; // Note: This could be more strictly typed if needed
+  control: any;
   selectedStyle: LogoStyle;
 }
