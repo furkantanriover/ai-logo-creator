@@ -188,7 +188,7 @@ function PromptInputSection({ control, onSurpriseMe, isGenerating }: PromptInput
   return (
     <View className="mb-6">
       <View className="mb-2 flex-row items-center justify-between">
-        <Text className="text-2xl font-semibold text-white">Enter Your Prompt</Text>
+        <Text className="text-[20px] font-[600px] text-white">Enter Your Prompt</Text>
         {renderButton()}
       </View>
 
@@ -269,7 +269,7 @@ function LogoStylesSection({ control, selectedStyle }: LogoStylesSectionProps) {
 
   return (
     <View className="mb-6">
-      <Text className="mb-2 text-xl font-semibold text-white">Logo Styles</Text>
+      <Text className="mb-2 text-[20px] font-[600px] text-white">Logo Styles</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
         {LOGO_STYLES.map(renderStyleItem)}
       </ScrollView>
@@ -330,28 +330,11 @@ function PreviousProjectsSection({
   status,
   onProjectClick,
 }: PreviousProjectsSectionProps) {
-  // Skeleton loading UI
-  if (isLoading) {
-    return (
-      <View className="mb-4">
-        <Text className="mb-2 text-lg font-semibold text-white">Your Projects</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {[1, 2, 3, 4].map((item) => (
-            <View
-              key={item}
-              className="mr-3 h-[100px] w-[100px] animate-pulse overflow-hidden rounded-xl bg-gray-800/50"
-            />
-          ))}
-        </ScrollView>
-      </View>
-    );
-  }
-
   if (isGenerating || status === "done" || status === "error") {
     return null;
   }
 
-  if (!projects.length) {
+  if (!projects.length && !isLoading) {
     return null;
   }
 
@@ -373,9 +356,16 @@ function PreviousProjectsSection({
 
   return (
     <View className="mb-4">
-      <Text className="mb-2 text-lg font-semibold text-white">Your Projects</Text>
+      <Text className="mb-2 text-[20px] font-[600px] text-white">Your Projects</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {projects.map(renderProjectItem)}
+        {isLoading
+          ? [1, 2, 3, 4].map((item) => (
+              <View
+                key={item}
+                className="mr-3 h-[100px] w-[100px] animate-pulse overflow-hidden rounded-xl bg-gray-800/50"
+              />
+            ))
+          : projects.map(renderProjectItem)}
       </ScrollView>
     </View>
   );

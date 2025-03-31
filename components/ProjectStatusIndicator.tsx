@@ -2,12 +2,12 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { ActivityIndicator, Pressable, Text, TouchableOpacity, View } from "react-native";
-import { useState } from "react";
+
+import ImageLoadingIndicator from "./ImageLoadingIndicator";
 
 import { BLUR_INTENSITY, GRADIENT_COLORS } from "~/constants/logo";
 import { Generation } from "~/types/generation";
 import cn from "~/utils/cn";
-import ImageLoadingIndicator from "./ImageLoadingIndicator";
 
 type StatusIndicatorProps = {
   status?: "processing" | "done" | "error";
