@@ -30,18 +30,16 @@ import { useAuthContext } from "~/context/AuthContext";
 import { useGenerateLogo } from "~/hooks/useGenerateLogo";
 import { useGeneratePrompt } from "~/hooks/useGeneratePrompt";
 import { useProjects } from "~/hooks/useProjects";
+import { useLogoStore } from "~/store/logo-store";
 import {
   Generation,
-  GenerationStatus,
   LogoFormValues,
   LogoStyle,
   LogoStylesSectionProps,
   PreviousProjectsSectionProps,
-  ProjectStatusIndicatorSectionProps,
   PromptInputSectionProps,
 } from "~/types/generation";
 import cn from "~/utils/cn";
-import { useLogoStore } from "~/store/logo-store";
 
 export default function LogoGenerator() {
   const { control, handleSubmit, setValue, watch } = useForm<LogoFormValues>({
@@ -55,13 +53,11 @@ export default function LogoGenerator() {
   const { currentGeneration, resetCurrentGeneration } = useLogoStore();
 
   const selectedStyle = watch("style");
-  const currentPrompt = watch("prompt");
 
   const { mutate: generatePrompt, isPending: isPromptGenerating } = useGeneratePrompt();
   const {
     mutate: generateLogo,
     isPending: isLogoGenerating,
-    isError,
     reset: resetLogoGeneration,
   } = useGenerateLogo();
 
@@ -106,7 +102,6 @@ export default function LogoGenerator() {
         <Text className="mb-4 text-center text-xl font-semibold text-white">AI Logo</Text>
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           <ProjectStatusIndicatorSection onTryAgain={handleTryAgain} />
-
           <PreviousProjectsSection
             projects={projects}
             isLoading={isProjectsLoading}
@@ -266,7 +261,7 @@ function LogoStylesSection({ control, selectedStyle }: LogoStylesSectionProps) {
 }
 
 function ProjectStatusIndicatorSection({ onTryAgain }: { onTryAgain?: () => void }) {
-  const { data: projects = [], isLoading: isProjectsLoading } = useProjects();
+  const { isLoading: isProjectsLoading } = useProjects();
 
   if (isProjectsLoading) {
     return (
@@ -305,12 +300,7 @@ function PreviousProjectsSection({
 }: PreviousProjectsSectionProps) {
   const { currentGeneration } = useLogoStore();
 
-  if (
-    isGenerating ||
-    currentGeneration.status === "processing" ||
-    currentGeneration.status === "done" ||
-    currentGeneration.status === "error"
-  ) {
+  if (isGenerating || currentGeneration.status === "processing") {
     return null;
   }
 

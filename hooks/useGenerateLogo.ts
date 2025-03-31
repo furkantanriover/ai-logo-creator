@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { httpsCallable } from "firebase/functions";
 
 import { useAuthContext } from "~/context/AuthContext";
@@ -13,6 +13,7 @@ export function useGenerateLogo() {
   >(functions, "generateLogo");
   const { user } = useAuthContext();
   const { setCurrentGeneration } = useLogoStore();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ prompt, style, userId }: LogoFormValues) => {
@@ -20,7 +21,6 @@ export function useGenerateLogo() {
         throw new Error("User not authenticated");
       }
 
-      // Set generation status to processing
       setCurrentGeneration({
         status: "processing",
         prompt,
@@ -37,7 +37,6 @@ export function useGenerateLogo() {
         throw new Error(result.data.error || "Failed to generate logo");
       }
 
-      // Set generation status to done with the image URL
       setCurrentGeneration({
         status: "done",
         logoUrl: result.data.imageUrl,
@@ -46,7 +45,6 @@ export function useGenerateLogo() {
         projectId: result.data.projectId,
       });
 
-      // Return the image URL along with the prompt and style
       return {
         imageUrl: result.data.imageUrl,
         prompt,
@@ -59,6 +57,10 @@ export function useGenerateLogo() {
       setCurrentGeneration({
         status: "error",
       });
+    },
+    onSuccess: () => {
+      // Invalidate projects query to refetch the latest projects
+      queryClient.invalidateQueries({ queryKey: ["projects", user?.uid] });
     },
   });
 }

@@ -57,7 +57,7 @@ export function useProjectById(projectId: string | undefined) {
         logoUrl: result.data.imageUrl,
         prompt: result.data.prompt,
         style: result.data.style,
-        projectId: projectId,
+        projectId,
       });
     }
   }, [result.data, projectId, setCurrentGeneration]);

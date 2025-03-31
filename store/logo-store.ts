@@ -1,4 +1,5 @@
 import { create } from "zustand";
+
 import { Generation, LogoStyle } from "~/types/generation";
 
 export interface LogoState {
