@@ -140,6 +140,7 @@ export const generateLogo = onCall(
       return {
         success: true,
         imageUrl,
+        projectId: generationRef.id,
       };
     } catch (error) {
       console.error("Error generating logo:", error);

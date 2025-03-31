@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { httpsCallable } from "firebase/functions";
+import { useEffect } from "react";
 
 import { useAuthContext } from "~/context/AuthContext";
+import { useLogoStore } from "~/store/logo-store";
 import { Generation } from "~/types/generation";
 import { functions } from "~/utils/firebase";
 
@@ -17,8 +19,9 @@ export function useProjects() {
     functions,
     "getUserProjects"
   );
+  const { setLatestProject } = useLogoStore();
 
-  return useQuery({
+  const result = useQuery({
     queryKey: ["projects", user?.uid],
     queryFn: async () => {
       if (!user?.uid) {
@@ -38,4 +41,13 @@ export function useProjects() {
     refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 5,
   });
+
+  // Update the latest project in the store whenever projects data changes
+  useEffect(() => {
+    if (result.data && result.data.length > 0) {
+      setLatestProject(result.data[0]);
+    }
+  }, [result.data, setLatestProject]);
+
+  return result;
 }

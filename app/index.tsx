@@ -41,6 +41,7 @@ import {
   PromptInputSectionProps,
 } from "~/types/generation";
 import cn from "~/utils/cn";
+import { useLogoStore } from "~/store/logo-store";
 
 export default function LogoGenerator() {
   const { control, handleSubmit, setValue, watch } = useForm<LogoFormValues>({
@@ -51,6 +52,7 @@ export default function LogoGenerator() {
   });
   const { user } = useAuthContext();
   const { data: projects = [], isLoading: isProjectsLoading } = useProjects();
+  const { currentGeneration, resetCurrentGeneration } = useLogoStore();
 
   const selectedStyle = watch("style");
   const currentPrompt = watch("prompt");
@@ -60,16 +62,8 @@ export default function LogoGenerator() {
     mutate: generateLogo,
     isPending: isLogoGenerating,
     isError,
-    isSuccess,
-    data: logoData,
     reset: resetLogoGeneration,
   } = useGenerateLogo();
-
-  const logoInfo = {
-    url: typeof logoData === "object" ? logoData.imageUrl : logoData,
-    prompt: typeof logoData === "object" ? logoData.prompt : currentPrompt,
-    style: typeof logoData === "object" ? logoData.style : selectedStyle,
-  };
 
   const handleSurpriseMe = () => {
     generatePrompt(selectedStyle, {
@@ -90,13 +84,10 @@ export default function LogoGenerator() {
     });
   };
 
-  const generationStatus: GenerationStatus | undefined = isLogoGenerating
-    ? "processing"
-    : isSuccess && logoData
-      ? "done"
-      : isError
-        ? "error"
-        : undefined;
+  const handleTryAgain = () => {
+    resetLogoGeneration();
+    resetCurrentGeneration();
+  };
 
   return (
     <Container padded>
@@ -114,17 +105,12 @@ export default function LogoGenerator() {
         className="flex-1">
         <Text className="mb-4 text-center text-xl font-semibold text-white">AI Logo</Text>
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-          <ProjectStatusIndicatorSection
-            status={generationStatus}
-            logoUrl={logoInfo.url}
-            onTryAgain={resetLogoGeneration}
-          />
+          <ProjectStatusIndicatorSection onTryAgain={handleTryAgain} />
 
           <PreviousProjectsSection
             projects={projects}
             isLoading={isProjectsLoading}
             isGenerating={isLogoGenerating}
-            status={generationStatus}
             onProjectClick={(project) => {
               router.push({
                 pathname: "/output-modal",
@@ -162,7 +148,9 @@ export default function LogoGenerator() {
               </View>
             }
             onPress={handleSubmit(handleCreate)}
-            disabled={isLogoGenerating || isPromptGenerating}
+            disabled={
+              isLogoGenerating || isPromptGenerating || currentGeneration.status === "processing"
+            }
           />
         </View>
       </KeyboardAvoidingView>
@@ -277,13 +265,8 @@ function LogoStylesSection({ control, selectedStyle }: LogoStylesSectionProps) {
   );
 }
 
-function ProjectStatusIndicatorSection({
-  status,
-  logoUrl,
-  onTryAgain,
-}: ProjectStatusIndicatorSectionProps) {
+function ProjectStatusIndicatorSection({ onTryAgain }: { onTryAgain?: () => void }) {
   const { data: projects = [], isLoading: isProjectsLoading } = useProjects();
-  const latestProject = projects.length > 0 ? projects[0] : null;
 
   if (isProjectsLoading) {
     return (
@@ -307,18 +290,9 @@ function ProjectStatusIndicatorSection({
     );
   }
 
-  if (!status && !latestProject) {
-    return null;
-  }
-
   return (
     <View className="mb-4">
-      <ProjectStatusIndicator
-        status={status}
-        logoUrl={logoUrl}
-        onTryAgain={onTryAgain}
-        latestProject={latestProject}
-      />
+      <ProjectStatusIndicator onTryAgain={onTryAgain} />
     </View>
   );
 }
@@ -327,10 +301,16 @@ function PreviousProjectsSection({
   projects,
   isLoading,
   isGenerating,
-  status,
   onProjectClick,
 }: PreviousProjectsSectionProps) {
-  if (isGenerating || status === "done" || status === "error") {
+  const { currentGeneration } = useLogoStore();
+
+  if (
+    isGenerating ||
+    currentGeneration.status === "processing" ||
+    currentGeneration.status === "done" ||
+    currentGeneration.status === "error"
+  ) {
     return null;
   }
 

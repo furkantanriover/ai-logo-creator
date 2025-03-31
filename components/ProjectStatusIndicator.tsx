@@ -6,31 +6,28 @@ import { ActivityIndicator, Pressable, Text, TouchableOpacity, View } from "reac
 import ImageLoadingIndicator from "./ImageLoadingIndicator";
 
 import { BLUR_INTENSITY, GRADIENT_COLORS } from "~/constants/logo";
+import { useLogoStore } from "~/store/logo-store";
 import { Generation } from "~/types/generation";
 import cn from "~/utils/cn";
 
 type StatusIndicatorProps = {
-  status?: "processing" | "done" | "error";
-  logoUrl?: string;
   onTryAgain?: () => void;
-  latestProject?: Generation | null;
 };
 
-export default function StatusIndicator({
-  status,
-  logoUrl,
-  onTryAgain,
-  latestProject,
-}: StatusIndicatorProps) {
+export default function StatusIndicator({ onTryAgain }: StatusIndicatorProps) {
+  const { currentGeneration, latestProject, resetCurrentGeneration } = useLogoStore();
+
   const handleTryAgain = () => {
     if (onTryAgain) {
       onTryAgain();
     } else {
+      resetCurrentGeneration();
       router.replace("/");
     }
   };
 
-  if (!status && latestProject) {
+  // Use the latest project from store if we're in idle state
+  if (currentGeneration.status === "idle" && latestProject) {
     return (
       <View className="overflow-hidden rounded-xl">
         <LinearGradient
@@ -72,7 +69,7 @@ export default function StatusIndicator({
     );
   }
 
-  if (status === "processing") {
+  if (currentGeneration.status === "processing") {
     return (
       <View className="overflow-hidden rounded-xl">
         <LinearGradient
@@ -92,7 +89,7 @@ export default function StatusIndicator({
     );
   }
 
-  if (status === "done") {
+  if (currentGeneration.status === "done") {
     return (
       <View className="overflow-hidden rounded-xl">
         <LinearGradient
@@ -104,10 +101,10 @@ export default function StatusIndicator({
         <Pressable
           className="w-full"
           onPress={() => {
-            if (latestProject?.id) {
+            if (currentGeneration.projectId) {
               router.push({
                 pathname: "/output-modal",
-                params: { projectId: latestProject.id },
+                params: { projectId: currentGeneration.projectId },
               });
             } else {
               router.push("/output-modal");
@@ -119,8 +116,8 @@ export default function StatusIndicator({
               tint="dark"
               className={cn("flex-row p-4", pressed ? "opacity-70" : "opacity-100")}>
               <View className="mr-2 h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-white/20">
-                {logoUrl ? (
-                  <ImageLoadingIndicator uri={logoUrl} resizeMode="contain" />
+                {currentGeneration.logoUrl ? (
+                  <ImageLoadingIndicator uri={currentGeneration.logoUrl} resizeMode="contain" />
                 ) : (
                   <Text className="font-semibold text-white">✓</Text>
                 )}
@@ -136,7 +133,7 @@ export default function StatusIndicator({
     );
   }
 
-  if (status === "error") {
+  if (currentGeneration.status === "error") {
     return (
       <View className="overflow-hidden rounded-xl">
         <LinearGradient
