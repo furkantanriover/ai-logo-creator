@@ -1,10 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import * as Clipboard from "expo-clipboard";
-import { LinearGradient } from "expo-linear-gradient";
-import { router, Stack, useLocalSearchParams } from "expo-router";
 import * as FileSystem from "expo-file-system";
+import { LinearGradient } from "expo-linear-gradient";
 import * as MediaLibrary from "expo-media-library";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ReactNode, useState } from "react";
 import { ActivityIndicator, Alert, Platform, Text, TouchableOpacity, View } from "react-native";
