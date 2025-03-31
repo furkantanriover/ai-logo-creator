@@ -65,7 +65,6 @@ export const generateLogoPrompt = onCall(
   }
 );
 
-// Add new callable function for direct client use
 export const generateLogo = onCall(
   {
     enforceAppCheck: false,
@@ -82,14 +81,12 @@ export const generateLogo = onCall(
     }
 
     try {
-      // Create a new generation document
       const generationRef = db
         .collection("users")
         .doc(userId)
         .collection("generations")
         .doc();
 
-      // Save initial generation info
       await generationRef.set({
         prompt,
         style,
@@ -119,7 +116,6 @@ export const generateLogo = onCall(
           styleInstruction = "Create a clean, professional logo.";
       }
 
-      // Generate image with DALL-E 3
       const response = await openai.images.generate({
         model: "dall-e-3",
         prompt: `${prompt}. ${styleInstruction} Make it a professional logo with a clean background.`,
@@ -135,7 +131,6 @@ export const generateLogo = onCall(
         throw new Error("No image URL returned from OpenAI");
       }
 
-      // Update the generation document with the result
       await generationRef.update({
         status: "done",
         imageUrl,
@@ -156,7 +151,6 @@ export const generateLogo = onCall(
   }
 );
 
-// Keep existing Firestore trigger function but rename it
 export const processLogoGeneration = onDocumentCreated(
   "users/{userId}/generations/{generationId}",
   async (event) => {
@@ -202,7 +196,6 @@ export const processLogoGeneration = onDocumentCreated(
           styleInstruction = "Create a clean, professional logo.";
       }
 
-      // Generate image with DALL-E 3
       const response = await openai.images.generate({
         model: "dall-e-3",
         prompt: `${data.prompt}. ${styleInstruction} Make it a professional logo with a clean background.`,
@@ -243,6 +236,104 @@ export const processLogoGeneration = onDocumentCreated(
           error: (error as Error).message || "Failed to generate logo",
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
+    }
+  }
+);
+
+export const getUserProjects = onCall(
+  {
+    enforceAppCheck: false,
+    maxInstances: 5,
+  },
+  async (request) => {
+    const { userId } = request.data;
+
+    if (!userId) {
+      return {
+        success: false,
+        error: "User not authenticated",
+      };
+    }
+
+    try {
+      const generationsRef = db
+        .collection("users")
+        .doc(userId)
+        .collection("generations");
+
+      const snapshot = await generationsRef
+        .where("status", "==", "done")
+        .orderBy("createdAt", "desc")
+        .limit(20)
+        .get();
+
+      const projects = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate() || new Date(),
+      }));
+
+      return {
+        success: true,
+        projects,
+      };
+    } catch (error) {
+      console.error("Error fetching user projects:", error);
+      return {
+        success: false,
+        error: (error as Error).message || "Failed to fetch user projects",
+      };
+    }
+  }
+);
+
+export const getUserProjectById = onCall(
+  {
+    enforceAppCheck: false,
+    maxInstances: 5,
+  },
+  async (request) => {
+    const { userId, projectId } = request.data;
+
+    if (!userId || !projectId) {
+      return {
+        success: false,
+        error: "User ID and project ID are required",
+      };
+    }
+
+    try {
+      const projectRef = db
+        .collection("users")
+        .doc(userId)
+        .collection("generations")
+        .doc(projectId);
+
+      const projectDoc = await projectRef.get();
+
+      if (!projectDoc.exists) {
+        return {
+          success: false,
+          error: "Project not found",
+        };
+      }
+
+      const projectData = {
+        id: projectDoc.id,
+        ...projectDoc.data(),
+        createdAt: projectDoc.data()?.createdAt?.toDate() || new Date(),
+      };
+
+      return {
+        success: true,
+        project: projectData,
+      };
+    } catch (error) {
+      console.error("Error fetching project by ID:", error);
+      return {
+        success: false,
+        error: (error as Error).message || "Failed to fetch project",
+      };
     }
   }
 );
