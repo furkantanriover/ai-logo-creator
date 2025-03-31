@@ -16,6 +16,7 @@ import {
 
 import Button from "~/components/Button";
 import Container from "~/components/Container";
+import ImageLoadingIndicator from "~/components/ImageLoadingIndicator";
 import ProjectStatusIndicator from "~/components/ProjectStatusIndicator";
 import SparkleIcon from "~/components/SparkleIcon";
 import {
@@ -28,12 +29,16 @@ import {
 import { useAuthContext } from "~/context/AuthContext";
 import { useGenerateLogo } from "~/hooks/useGenerateLogo";
 import { useGeneratePrompt } from "~/hooks/useGeneratePrompt";
-import { useProjectStore } from "~/store/projectStore";
+import { useProjects } from "~/hooks/useProjects";
 import {
+  Generation,
+  GenerationStatus,
   LogoFormValues,
   LogoStyle,
-  PromptInputSectionProps,
   LogoStylesSectionProps,
+  PreviousProjectsSectionProps,
+  ProjectStatusIndicatorSectionProps,
+  PromptInputSectionProps,
 } from "~/types/generation";
 import cn from "~/utils/cn";
 
@@ -45,9 +50,10 @@ export default function LogoGenerator() {
     },
   });
   const { user } = useAuthContext();
-  const { projects, setActiveProject } = useProjectStore();
+  const { data: projects = [], isLoading: isProjectsLoading } = useProjects();
 
   const selectedStyle = watch("style");
+  const currentPrompt = watch("prompt");
 
   const { mutate: generatePrompt, isPending: isPromptGenerating } = useGeneratePrompt();
   const {
@@ -55,26 +61,24 @@ export default function LogoGenerator() {
     isPending: isLogoGenerating,
     isError,
     isSuccess,
-    data: logoUrl,
+    data: logoData,
     reset: resetLogoGeneration,
   } = useGenerateLogo();
 
+  const logoInfo = {
+    url: typeof logoData === "object" ? logoData.imageUrl : logoData,
+    prompt: typeof logoData === "object" ? logoData.prompt : currentPrompt,
+    style: typeof logoData === "object" ? logoData.style : selectedStyle,
+  };
+
   const handleSurpriseMe = () => {
     generatePrompt(selectedStyle, {
-      onSuccess: (aiPrompt) => {
-        if (aiPrompt) {
-          setValue("prompt", aiPrompt);
-        }
-      },
-      onError: (error) => {
-        console.error("Error generating prompt:", error);
-      },
+      onSuccess: (aiPrompt) => aiPrompt && setValue("prompt", aiPrompt),
+      onError: (error) => console.error("Error generating prompt:", error),
     });
   };
 
   const handleCreate = (data: LogoFormValues) => {
-    console.log("Form submitted with:", data);
-
     if (!user?.uid) {
       console.error("User not authenticated");
       return;
@@ -86,23 +90,13 @@ export default function LogoGenerator() {
     });
   };
 
-  const handleTryAgain = () => {
-    resetLogoGeneration();
-  };
-
-  let generationStatus: "processing" | "done" | "error" | undefined = undefined;
-  if (isLogoGenerating) {
-    generationStatus = "processing";
-  } else if (isSuccess && logoUrl) {
-    generationStatus = "done";
-  } else if (isError) {
-    generationStatus = "error";
-  }
-
-  const handleProjectClick = (project: any) => {
-    setActiveProject(project);
-    router.push("/output-modal");
-  };
+  const generationStatus: GenerationStatus | undefined = isLogoGenerating
+    ? "processing"
+    : isSuccess && logoData
+      ? "done"
+      : isError
+        ? "error"
+        : undefined;
 
   return (
     <Container padded>
@@ -119,20 +113,26 @@ export default function LogoGenerator() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1">
         <Text className="mb-4 text-center text-xl font-semibold text-white">AI Logo</Text>
-        <ScrollView className="flex-1">
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           <ProjectStatusIndicatorSection
             status={generationStatus}
-            logoUrl={typeof logoUrl === "object" ? logoUrl.imageUrl : logoUrl}
-            prompt={typeof logoUrl === "object" ? logoUrl.prompt : watch("prompt")}
-            style={typeof logoUrl === "object" ? logoUrl.style : watch("style")}
-            onTryAgain={handleTryAgain}
+            logoUrl={logoInfo.url}
+            onTryAgain={resetLogoGeneration}
           />
+
           <PreviousProjectsSection
             projects={projects}
+            isLoading={isProjectsLoading}
             isGenerating={isLogoGenerating}
             status={generationStatus}
-            onProjectClick={handleProjectClick}
+            onProjectClick={(project) => {
+              router.push({
+                pathname: "/output-modal",
+                params: { projectId: project.id },
+              });
+            }}
           />
+
           <View>
             <PromptInputSection
               control={control}
@@ -144,19 +144,26 @@ export default function LogoGenerator() {
           </View>
         </ScrollView>
 
-        <View>
-          {!isLogoGenerating && (
-            <Button
-              title={
-                <View className="flex-row items-center">
-                  <Text className="text-lg font-semibold text-white">Create</Text>
-                  <SparkleIcon size={18} className="ml-2" />
-                </View>
-              }
-              onPress={handleSubmit(handleCreate)}
-              disabled={isPromptGenerating}
-            />
-          )}
+        <View className="mt-4">
+          <Button
+            title={
+              <View className="flex-row items-center justify-center">
+                {isLogoGenerating ? (
+                  <>
+                    <ActivityIndicator size="small" color="#fff" className="mr-2" />
+                    <Text className="text-lg font-semibold text-white">Loading...</Text>
+                  </>
+                ) : (
+                  <>
+                    <Text className="text-lg font-semibold text-white">Create</Text>
+                    <SparkleIcon size={18} className="ml-2" />
+                  </>
+                )}
+              </View>
+            }
+            onPress={handleSubmit(handleCreate)}
+            disabled={isLogoGenerating || isPromptGenerating}
+          />
         </View>
       </KeyboardAvoidingView>
     </Container>
@@ -164,23 +171,25 @@ export default function LogoGenerator() {
 }
 
 function PromptInputSection({ control, onSurpriseMe, isGenerating }: PromptInputSectionProps) {
+  const renderButton = () => (
+    <TouchableOpacity
+      onPress={onSurpriseMe}
+      disabled={isGenerating}
+      className="flex-row items-center px-3 py-2">
+      {isGenerating ? (
+        <ActivityIndicator size="small" color="#fff" className="mr-2" />
+      ) : (
+        <Text className="mr-2 text-lg">🎲</Text>
+      )}
+      <Text className="text-sm text-white">{isGenerating ? "Generating..." : "Surprise me"}</Text>
+    </TouchableOpacity>
+  );
+
   return (
-    <View>
+    <View className="mb-6">
       <View className="mb-2 flex-row items-center justify-between">
         <Text className="text-2xl font-semibold text-white">Enter Your Prompt</Text>
-        <TouchableOpacity
-          onPress={onSurpriseMe}
-          disabled={isGenerating}
-          className="flex-row items-center px-3 py-2">
-          {isGenerating ? (
-            <ActivityIndicator size="small" color="#fff" className="mr-2" />
-          ) : (
-            <Text className="mr-2 text-lg">🎲</Text>
-          )}
-          <Text className="text-sm text-white">
-            {isGenerating ? "Generating..." : "Surprise me"}
-          </Text>
-        </TouchableOpacity>
+        {renderButton()}
       </View>
 
       <View className="overflow-hidden rounded-xl">
@@ -226,120 +235,147 @@ function PromptInputSection({ control, onSurpriseMe, isGenerating }: PromptInput
 }
 
 function LogoStylesSection({ control, selectedStyle }: LogoStylesSectionProps) {
+  const renderStyleItem = (style: (typeof LOGO_STYLES)[0]) => (
+    <Controller
+      key={style.id}
+      control={control}
+      name="style"
+      render={({ field: { onChange } }) => (
+        <TouchableOpacity
+          className={cn(
+            "mr-4 items-center",
+            selectedStyle === style.id ? "opacity-100" : "opacity-80"
+          )}
+          onPress={() => onChange(style.id)}>
+          <View
+            className={cn(
+              "h-[100px] w-[100px] overflow-hidden rounded-3xl",
+              selectedStyle === style.id ? "border-2 border-white" : "border border-gray-600",
+              style.id === "none" ? "bg-[#1E1836]" : "bg-[#2A2542]"
+            )}>
+            <Image source={style.image} className="h-full w-full" resizeMode="cover" />
+          </View>
+          <Text
+            className={cn(
+              "mt-1 text-center text-[13px]",
+              selectedStyle === style.id ? "font-[700px] text-white" : "font-[400px] text-gray-400"
+            )}>
+            {style.label}
+          </Text>
+        </TouchableOpacity>
+      )}
+    />
+  );
+
   return (
     <View className="mb-6">
       <Text className="mb-2 text-xl font-semibold text-white">Logo Styles</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
-        <Controller
-          control={control}
-          name="style"
-          render={({ field: { onChange } }) => (
-            <>
-              {LOGO_STYLES.map((style) => (
-                <TouchableOpacity
-                  key={style.id}
-                  className={cn(
-                    "mr-4 items-center",
-                    selectedStyle === style.id ? "opacity-100" : "opacity-80"
-                  )}
-                  onPress={() => onChange(style.id)}>
-                  <View
-                    className={cn(
-                      "h-[100px] w-[100px] overflow-hidden rounded-3xl",
-                      selectedStyle === style.id
-                        ? "border-2 border-white"
-                        : "border border-gray-600",
-                      style.id === "none" ? "bg-[#1E1836]" : "bg-[#2A2542]"
-                    )}>
-                    <Image source={style.image} className="h-full w-full" resizeMode="cover" />
-                  </View>
-                  <Text
-                    className={cn(
-                      "mt-1 text-center text-[13px]",
-                      selectedStyle === style.id
-                        ? "font-[700px] text-white"
-                        : "font-[400px] text-gray-400"
-                    )}>
-                    {style.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </>
-          )}
-        />
+        {LOGO_STYLES.map(renderStyleItem)}
       </ScrollView>
     </View>
   );
 }
 
-type ProjectStatusIndicatorSectionProps = {
-  status?: "processing" | "done" | "error";
-  logoUrl?: string;
-  prompt?: string;
-  style?: string;
-  onTryAgain?: () => void;
-};
-
 function ProjectStatusIndicatorSection({
   status,
   logoUrl,
-  prompt,
-  style,
   onTryAgain,
 }: ProjectStatusIndicatorSectionProps) {
-  return (
-    <View className="mb-4">
-      <ProjectStatusIndicator
-        status={status}
-        logoUrl={logoUrl}
-        prompt={prompt}
-        style={style}
-        onTryAgain={onTryAgain}
-      />
-    </View>
-  );
-}
+  const { data: projects = [], isLoading: isProjectsLoading } = useProjects();
+  const latestProject = projects.length > 0 ? projects[0] : null;
 
-type PreviousProjectsSectionProps = {
-  projects: any[];
-  isGenerating?: boolean;
-  status?: "processing" | "done" | "error";
-  onProjectClick: (project: any) => void;
-};
+  if (isProjectsLoading) {
+    return (
+      <View className="mb-4">
+        <View className="overflow-hidden rounded-xl">
+          <LinearGradient
+            colors={GRADIENT_COLORS.primary as readonly [string, string]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            className="absolute h-full w-full"
+          />
+          <BlurView intensity={BLUR_INTENSITY} tint="dark" className="flex-row p-4">
+            <View className="mr-2 h-10 w-10 animate-pulse rounded-lg bg-white/20" />
+            <View className="flex-1">
+              <View className="mb-2 h-4 w-36 animate-pulse rounded-md bg-white/20" />
+              <View className="h-3 w-24 animate-pulse rounded-md bg-white/20" />
+            </View>
+          </BlurView>
+        </View>
+      </View>
+    );
+  }
 
-function PreviousProjectsSection({
-  projects,
-  isGenerating,
-  status,
-  onProjectClick,
-}: PreviousProjectsSectionProps) {
-  if (projects.length === 0 || isGenerating || status === "done" || status === "error") {
+  if (!status && !latestProject) {
     return null;
   }
 
   return (
     <View className="mb-4">
+      <ProjectStatusIndicator
+        status={status}
+        logoUrl={logoUrl}
+        onTryAgain={onTryAgain}
+        latestProject={latestProject}
+      />
+    </View>
+  );
+}
+
+function PreviousProjectsSection({
+  projects,
+  isLoading,
+  isGenerating,
+  status,
+  onProjectClick,
+}: PreviousProjectsSectionProps) {
+  // Skeleton loading UI
+  if (isLoading) {
+    return (
+      <View className="mb-4">
+        <Text className="mb-2 text-lg font-semibold text-white">Your Projects</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {[1, 2, 3, 4].map((item) => (
+            <View
+              key={item}
+              className="mr-3 h-[100px] w-[100px] animate-pulse overflow-hidden rounded-xl bg-gray-800/50"
+            />
+          ))}
+        </ScrollView>
+      </View>
+    );
+  }
+
+  if (isGenerating || status === "done" || status === "error") {
+    return null;
+  }
+
+  if (!projects.length) {
+    return null;
+  }
+
+  const renderProjectItem = (project: Generation) => (
+    <TouchableOpacity
+      key={project.id}
+      onPress={() => onProjectClick(project)}
+      className="mr-3 h-[100px] w-[100px] overflow-hidden rounded-xl">
+      <View className="relative h-full w-full">
+        <ImageLoadingIndicator uri={project.imageUrl} />
+        <View className="absolute bottom-0 w-full bg-black/50 p-2">
+          <Text className="text-xs text-white" numberOfLines={1}>
+            {project.prompt}
+          </Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
+  return (
+    <View className="mb-4">
       <Text className="mb-2 text-lg font-semibold text-white">Your Projects</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {projects.map((project) => (
-          <TouchableOpacity
-            key={project.id}
-            onPress={() => onProjectClick(project)}
-            className="mr-3 h-[120px] w-[120px] overflow-hidden rounded-xl">
-            <View className="relative h-full w-full">
-              <Image
-                source={{ uri: project.imageUrl }}
-                className="h-full w-full"
-                resizeMode="cover"
-              />
-              <View className="absolute bottom-0 w-full bg-black/50 p-2">
-                <Text className="text-xs text-white" numberOfLines={1}>
-                  {project.prompt}
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+        {projects.map(renderProjectItem)}
       </ScrollView>
     </View>
   );

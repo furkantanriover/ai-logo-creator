@@ -1,3 +1,5 @@
+import { Control } from "react-hook-form";
+
 export type LogoStyle = "none" | "monogram" | "abstract" | "mascot";
 export type GenerationStatus = "processing" | "done" | "error";
 
@@ -28,12 +30,28 @@ export type GeneratePromptResponse = {
 
 // Component props types
 export interface PromptInputSectionProps {
-  control: any;
+  control: Control<LogoFormValues>;
   onSurpriseMe: () => void;
   isGenerating: boolean;
 }
 
 export interface LogoStylesSectionProps {
-  control: any;
+  control: Control<LogoFormValues>;
   selectedStyle: LogoStyle;
+}
+
+export interface ProjectStatusIndicatorSectionProps {
+  status?: GenerationStatus | undefined;
+  logoUrl?: string;
+  prompt?: string;
+  style?: string;
+  onTryAgain?: () => void;
+}
+
+export interface PreviousProjectsSectionProps {
+  projects: Generation[];
+  isLoading?: boolean;
+  isGenerating?: boolean;
+  status?: GenerationStatus | undefined;
+  onProjectClick: (project: Generation) => void;
 }

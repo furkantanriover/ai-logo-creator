@@ -1,40 +1,36 @@
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { ActivityIndicator, Image, Text, TouchableOpacity, View, Pressable } from "react-native";
+import { ActivityIndicator, Pressable, Text, TouchableOpacity, View } from "react-native";
+import { useState } from "react";
 
 import { BLUR_INTENSITY, GRADIENT_COLORS } from "~/constants/logo";
-import { useProjectStore } from "~/store/projectStore";
+import { Generation } from "~/types/generation";
 import cn from "~/utils/cn";
+import ImageLoadingIndicator from "./ImageLoadingIndicator";
 
 type StatusIndicatorProps = {
   status?: "processing" | "done" | "error";
   logoUrl?: string;
-  prompt?: string;
-  style?: string;
   onTryAgain?: () => void;
+  latestProject?: Generation | null;
 };
 
 export default function StatusIndicator({
   status,
   logoUrl,
-  prompt,
-  style,
   onTryAgain,
+  latestProject,
 }: StatusIndicatorProps) {
-  const { activeProject } = useProjectStore();
-
   const handleTryAgain = () => {
     if (onTryAgain) {
       onTryAgain();
     } else {
-      // Default behavior - navigate back to the input screen
       router.replace("/");
     }
   };
 
-  // If no status is provided but we have an active project, show it
-  if (!status && activeProject) {
+  if (!status && latestProject) {
     return (
       <View className="overflow-hidden rounded-xl">
         <LinearGradient
@@ -43,19 +39,22 @@ export default function StatusIndicator({
           end={{ x: 1, y: 0 }}
           className="absolute h-full w-full"
         />
-        <Pressable className="w-full" onPress={() => router.push("/output-modal")}>
+        <Pressable
+          className="w-full"
+          onPress={() =>
+            router.push({
+              pathname: "/output-modal",
+              params: { projectId: latestProject.id },
+            })
+          }>
           {({ pressed }) => (
             <BlurView
               intensity={BLUR_INTENSITY}
               tint="dark"
               className={cn("flex-row p-4", pressed ? "opacity-70" : "opacity-100")}>
               <View className="mr-2 h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-white/20">
-                {activeProject.imageUrl ? (
-                  <Image
-                    source={{ uri: activeProject.imageUrl }}
-                    className="h-full w-full"
-                    resizeMode="contain"
-                  />
+                {latestProject.imageUrl ? (
+                  <ImageLoadingIndicator uri={latestProject.imageUrl} resizeMode="contain" />
                 ) : (
                   <Text className="font-semibold text-white">✓</Text>
                 )}
@@ -63,7 +62,7 @@ export default function StatusIndicator({
               <View className="flex-1">
                 <Text className="text-base font-medium text-white">Your Latest Project</Text>
                 <Text className="text-sm text-gray-300" numberOfLines={1}>
-                  {activeProject.prompt}
+                  {latestProject.prompt}
                 </Text>
               </View>
             </BlurView>
@@ -102,7 +101,18 @@ export default function StatusIndicator({
           end={{ x: 1, y: 0 }}
           className="absolute h-full w-full"
         />
-        <Pressable className="w-full" onPress={() => router.push("/output-modal")}>
+        <Pressable
+          className="w-full"
+          onPress={() => {
+            if (latestProject?.id) {
+              router.push({
+                pathname: "/output-modal",
+                params: { projectId: latestProject.id },
+              });
+            } else {
+              router.push("/output-modal");
+            }
+          }}>
           {({ pressed }) => (
             <BlurView
               intensity={BLUR_INTENSITY}
@@ -110,7 +120,7 @@ export default function StatusIndicator({
               className={cn("flex-row p-4", pressed ? "opacity-70" : "opacity-100")}>
               <View className="mr-2 h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-white/20">
                 {logoUrl ? (
-                  <Image source={{ uri: logoUrl }} className="h-full w-full" resizeMode="contain" />
+                  <ImageLoadingIndicator uri={logoUrl} resizeMode="contain" />
                 ) : (
                   <Text className="font-semibold text-white">✓</Text>
                 )}
