@@ -14,6 +14,7 @@ export const MAX_PROMPT_LENGTH = 500;
 // Gradient colors as readonly tuples for LinearGradient
 export const GRADIENT_COLORS = {
   primary: ["#943DFF", "#2938DC"] as readonly string[],
+  secondary: ["#2938DC", "#943DFF"] as readonly string[],
 };
 
 // BlurView settings
