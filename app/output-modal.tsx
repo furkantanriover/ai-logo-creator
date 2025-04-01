@@ -1,18 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
-import * as Clipboard from "expo-clipboard";
-import * as FileSystem from "expo-file-system";
 import { LinearGradient } from "expo-linear-gradient";
-import * as MediaLibrary from "expo-media-library";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ReactNode, useState } from "react";
-import { ActivityIndicator, Alert, Platform, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Platform, Text, TouchableOpacity, View } from "react-native";
 
 import Container from "~/components/Container";
 import ImageLoadingIndicator from "~/components/ImageLoadingIndicator";
 import { BLUR_INTENSITY, GRADIENT_COLORS } from "~/constants/logo";
 import { useProjectById } from "~/hooks/useProjectById";
+import { copyWithReset } from "~/utils/clipboard";
+import { downloadImage } from "~/utils/download";
 
 function Header({ title, onClose }: { title: string; onClose: () => void }) {
   return (
@@ -47,70 +46,20 @@ export default function OutputModal() {
     router.back();
   };
 
-  const copyToClipboard = async () => {
+  const handleCopyToClipboard = async () => {
     if (project?.prompt) {
-      await Clipboard.setStringAsync(project.prompt);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await copyWithReset(project.prompt, setCopied);
     }
   };
 
-  const downloadLogo = async () => {
-    if (!project?.imageUrl) {
-      Alert.alert("Error", "No image available to download");
-      return;
-    }
+  const handleDownloadLogo = async () => {
+    if (!project?.imageUrl) return;
 
-    try {
-      setDownloading(true);
-
-      // Request permissions first
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-
-      if (status !== MediaLibrary.PermissionStatus.GRANTED) {
-        Alert.alert("Permission Denied", "We need permission to save images to your device.", [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Settings",
-            onPress: () => MediaLibrary.requestPermissionsAsync(),
-          },
-        ]);
-        setDownloading(false);
-        return;
-      }
-
-      // Create a unique filename based on the timestamp and project ID
-      const filename = `ai-logo-${Date.now()}.jpg`;
-      const fileUri = `${FileSystem.documentDirectory}${filename}`;
-
-      // Download the image
-      const downloadResult = await FileSystem.downloadAsync(project.imageUrl, fileUri);
-
-      if (downloadResult.status !== 200) {
-        throw new Error("Failed to download image");
-      }
-
-      // Save to media library
-      const asset = await MediaLibrary.createAssetAsync(fileUri);
-
-      // Create an album if it doesn't exist
-      const album = await MediaLibrary.getAlbumAsync("AI Logo Creator");
-      if (album === null) {
-        await MediaLibrary.createAlbumAsync("AI Logo Creator", asset, false);
-      } else {
-        await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
-      }
-
-      // Delete the temporary file
-      await FileSystem.deleteAsync(fileUri, { idempotent: true });
-
-      Alert.alert("Success", "Logo saved to your device in the 'AI Logo Creator' album");
-    } catch (error) {
-      console.error("Error downloading logo:", error);
-      Alert.alert("Error", "Failed to download logo. Please try again.");
-    } finally {
-      setDownloading(false);
-    }
+    await downloadImage({
+      imageUrl: project.imageUrl,
+      onStart: () => setDownloading(true),
+      onComplete: () => setDownloading(false),
+    });
   };
 
   if (isLoading) {
@@ -169,7 +118,7 @@ export default function OutputModal() {
                 className="absolute bottom-0 left-0 right-0 overflow-hidden"
                 style={{ borderBottomLeftRadius: 24, borderBottomRightRadius: 24 }}>
                 <TouchableOpacity
-                  onPress={downloadLogo}
+                  onPress={handleDownloadLogo}
                   disabled={downloading}
                   className="flex-row items-center justify-center p-4"
                   activeOpacity={0.7}>
@@ -204,7 +153,7 @@ export default function OutputModal() {
         <PromptCard
           prompt={project.prompt}
           style={project.style}
-          onCopy={copyToClipboard}
+          onCopy={handleCopyToClipboard}
           copied={copied}
         />
       </ModalLayout>
