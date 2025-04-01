@@ -67,7 +67,7 @@ ai-logo-creator/
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/yourusername/ai-logo-creator.git
+   git clone https://github.com/furkantanriover/ai-logo-creator.git
    cd ai-logo-creator
    ```
 
