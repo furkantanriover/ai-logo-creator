@@ -3,7 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { ActivityIndicator, Pressable, Text, TouchableOpacity, View } from "react-native";
 
-import ImageLoadingIndicator from "./ImageLoadingIndicator";
+import FirebaseImage from "./FirebaseImage";
 
 import { BLUR_INTENSITY, GRADIENT_COLORS } from "~/constants/generation";
 import { useLogoStore } from "~/store/logo-store";
@@ -48,7 +48,7 @@ export default function StatusIndicator({ onTryAgain }: StatusIndicatorProps) {
                 className={cn("flex-row ", pressed ? "opacity-70" : "opacity-100")}>
                 <View className=" mr-4 h-20 w-20 items-center justify-center overflow-hidden bg-white/20">
                   {latestProject.imageUrl ? (
-                    <ImageLoadingIndicator uri={latestProject.imageUrl} resizeMode="contain" />
+                    <FirebaseImage uri={latestProject.imageUrl} resizeMode="contain" />
                   ) : (
                     <Text className="font-semibold text-white">✓</Text>
                   )}
@@ -108,7 +108,7 @@ export default function StatusIndicator({ onTryAgain }: StatusIndicatorProps) {
                 className={cn("flex-row ", pressed ? "opacity-70" : "opacity-100")}>
                 <View className="mr-4 h-20 w-20 items-center justify-center overflow-hidden  bg-white/20">
                   {currentGeneration.logoUrl ? (
-                    <ImageLoadingIndicator uri={currentGeneration.logoUrl} resizeMode="contain" />
+                    <FirebaseImage uri={currentGeneration.logoUrl} resizeMode="contain" />
                   ) : (
                     <Text className="font-semibold text-white">✓</Text>
                   )}

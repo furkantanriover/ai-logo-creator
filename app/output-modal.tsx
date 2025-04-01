@@ -7,7 +7,7 @@ import { ReactNode, useState } from "react";
 import { ActivityIndicator, Platform, Text, TouchableOpacity, View } from "react-native";
 
 import Container from "~/components/Container";
-import ImageLoadingIndicator from "~/components/ImageLoadingIndicator";
+import FirebaseImage from "~/components/FirebaseImage";
 import { BLUR_INTENSITY, GRADIENT_COLORS } from "~/constants/generation";
 import { useProjectById } from "~/hooks/useProjectById";
 import { copyWithReset } from "~/utils/clipboard";
@@ -105,7 +105,7 @@ export default function OutputModal() {
         <View className="mb-5 overflow-hidden rounded-3xl">
           {project.imageUrl ? (
             <View className="relative h-[400px] w-full">
-              <ImageLoadingIndicator
+              <FirebaseImage
                 uri={project.imageUrl}
                 resizeMode="contain"
                 className="h-full w-full"

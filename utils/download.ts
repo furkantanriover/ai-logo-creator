@@ -1,6 +1,7 @@
 import * as FileSystem from "expo-file-system";
 import * as MediaLibrary from "expo-media-library";
 import { Alert, Platform } from "react-native";
+import { getFirebaseImageUrl } from "./firebaseImage";
 
 /**
  * Options for downloading and saving an image
@@ -77,12 +78,18 @@ export const downloadImage = async ({
       return;
     }
 
+    // Get the proper download URL if it's a Firebase Storage URL
+    const downloadUrl = await getFirebaseImageUrl(imageUrl);
+    if (!downloadUrl) {
+      throw new Error("Unable to get a valid download URL");
+    }
+
     // Create a unique filename based on timestamp
     const filename = `${filePrefix}-${Date.now()}.${fileExtension}`;
     const fileUri = `${FileSystem.documentDirectory}${filename}`;
 
     // Download the image
-    const downloadResult = await FileSystem.downloadAsync(imageUrl, fileUri);
+    const downloadResult = await FileSystem.downloadAsync(downloadUrl, fileUri);
 
     if (downloadResult.status !== 200) {
       throw new Error("Failed to download image");

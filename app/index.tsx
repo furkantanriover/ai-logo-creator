@@ -16,7 +16,7 @@ import {
 
 import Button from "~/components/Button";
 import Container from "~/components/Container";
-import ImageLoadingIndicator from "~/components/ImageLoadingIndicator";
+import FirebaseImage from "~/components/FirebaseImage";
 import ProjectStatusIndicator from "~/components/ProjectStatusIndicator";
 import SparkleIcon from "~/components/SparkleIcon";
 import {
@@ -314,7 +314,7 @@ function PreviousProjectsSection({
       onPress={() => onProjectClick(project)}
       className="mr-3 h-[100px] w-[100px] overflow-hidden rounded-xl">
       <View className="relative h-full w-full">
-        <ImageLoadingIndicator uri={project.imageUrl} />
+        <FirebaseImage uri={project.imageUrl} />
         <View className="absolute bottom-0 w-full bg-black/50 p-2">
           <Text className="text-xs text-white" numberOfLines={1}>
             {project.prompt}

@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import axios from "axios";
 import * as admin from "firebase-admin";
 import { defineSecret } from "firebase-functions/params";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
@@ -12,6 +13,40 @@ if (!admin.apps.length) {
 const apiKey = defineSecret("GEMINI_API_KEY");
 const openaiApiKey = defineSecret("OPENAI_API_KEY");
 const db = admin.firestore();
+const storage = admin.storage();
+
+/**
+ * Downloads an image from a URL and returns it as a buffer
+ */
+async function downloadImageFromUrl(url: string): Promise<Buffer> {
+  const response = await axios.get(url, {
+    responseType: "arraybuffer",
+  });
+  return Buffer.from(response.data, "binary");
+}
+
+/**
+ * Uploads an image to Firebase Storage and returns the public URL
+ */
+async function uploadImageToStorage(
+  imageBuffer: Buffer,
+  userId: string,
+  generationId: string
+): Promise<string> {
+  const bucket = storage.bucket();
+  const filePath = `logos/${userId}/${generationId}.png`;
+  const file = bucket.file(filePath);
+
+  await file.save(imageBuffer, {
+    metadata: {
+      contentType: "image/png",
+    },
+  });
+
+  await file.makePublic();
+
+  return `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+}
 
 export const generateLogoPrompt = onCall(
   {
@@ -76,7 +111,7 @@ export const generateLogo = onCall(
     if (!userId) {
       return {
         success: false,
-        error: "User not authenticatedddd",
+        error: "User not authenticated",
       };
     }
 
@@ -125,21 +160,30 @@ export const generateLogo = onCall(
         style: "vivid",
       });
 
-      const imageUrl = response.data[0]?.url;
+      const tempImageUrl = response.data[0]?.url;
 
-      if (!imageUrl) {
+      if (!tempImageUrl) {
         throw new Error("No image URL returned from OpenAI");
       }
 
+      // Download and save the image to Firebase Storage
+      const imageBuffer = await downloadImageFromUrl(tempImageUrl);
+      const storageImageUrl = await uploadImageToStorage(
+        imageBuffer,
+        userId,
+        generationRef.id
+      );
+
       await generationRef.update({
         status: "done",
-        imageUrl,
+        tempImageUrl, // Keep the original URL for reference
+        imageUrl: storageImageUrl, // Use the permanent storage URL
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
       return {
         success: true,
-        imageUrl,
+        imageUrl: storageImageUrl,
         projectId: generationRef.id,
       };
     } catch (error) {
@@ -206,11 +250,19 @@ export const processLogoGeneration = onDocumentCreated(
         style: "vivid",
       });
 
-      const imageUrl = response.data[0]?.url;
+      const tempImageUrl = response.data[0]?.url;
 
-      if (!imageUrl) {
+      if (!tempImageUrl) {
         throw new Error("No image URL returned from OpenAI");
       }
+
+      // Download and save the image to Firebase Storage
+      const imageBuffer = await downloadImageFromUrl(tempImageUrl);
+      const storageImageUrl = await uploadImageToStorage(
+        imageBuffer,
+        userId,
+        generationId
+      );
 
       await db
         .collection("users")
@@ -219,7 +271,8 @@ export const processLogoGeneration = onDocumentCreated(
         .doc(generationId)
         .update({
           status: "done",
-          imageUrl,
+          tempImageUrl, // Keep the original URL for reference
+          imageUrl: storageImageUrl, // Use the permanent storage URL
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 

@@ -2,6 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFunctions } from "firebase/functions";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 import { Platform } from "react-native";
 
 // Optionally import the services that you want to use
@@ -45,11 +46,14 @@ const functions = getFunctions(app);
 // Firestore başlat
 const db = getFirestore(app);
 
+// Firebase Storage başlat
+const storage = getStorage(app);
+
 // Geliştirme ortamında emülatör kullanmak isterseniz
 // connectFunctionsEmulator(functions, "localhost", 5001);
 
 // Firebase servislerini export et
-export { app, auth, functions, db };
+export { app, auth, functions, db, storage };
 
 // Geriye dönük uyumluluk için default export
 export default app;

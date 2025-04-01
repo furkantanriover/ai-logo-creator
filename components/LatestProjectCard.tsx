@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import React from "react";
 import { Pressable, Text, View } from "react-native";
 
-import ImageLoadingIndicator from "./ImageLoadingIndicator";
+import FirebaseImage from "./FirebaseImage";
 
 import { BLUR_INTENSITY } from "~/constants/generation";
 import { useLogoStore } from "~/store/logo-store";
@@ -40,7 +40,7 @@ export default function LatestProjectCard() {
             className={cn("flex-row p-4", pressed ? "opacity-70" : "opacity-100")}>
             <View className="mr-2 h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-white/20">
               {latestProject.imageUrl ? (
-                <ImageLoadingIndicator uri={latestProject.imageUrl} resizeMode="contain" />
+                <FirebaseImage uri={latestProject.imageUrl} resizeMode="contain" />
               ) : (
                 <Text className="font-semibold text-white">✓</Text>
               )}
