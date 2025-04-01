@@ -25,7 +25,7 @@ import {
   GRADIENT_COLORS,
   LOGO_STYLES,
   MAX_PROMPT_LENGTH,
-} from "~/constants/logo";
+} from "~/constants/generation";
 import { useAuthContext } from "~/context/AuthContext";
 import { useGenerateLogo } from "~/hooks/useGenerateLogo";
 import { useGeneratePrompt } from "~/hooks/useGeneratePrompt";

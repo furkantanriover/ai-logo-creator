@@ -8,7 +8,7 @@ import { ActivityIndicator, Platform, Text, TouchableOpacity, View } from "react
 
 import Container from "~/components/Container";
 import ImageLoadingIndicator from "~/components/ImageLoadingIndicator";
-import { BLUR_INTENSITY, GRADIENT_COLORS } from "~/constants/logo";
+import { BLUR_INTENSITY, GRADIENT_COLORS } from "~/constants/generation";
 import { useProjectById } from "~/hooks/useProjectById";
 import { copyWithReset } from "~/utils/clipboard";
 import { downloadImage } from "~/utils/download";

@@ -6,7 +6,7 @@ import { Pressable, Text, View } from "react-native";
 
 import ImageLoadingIndicator from "./ImageLoadingIndicator";
 
-import { BLUR_INTENSITY } from "~/constants/logo";
+import { BLUR_INTENSITY } from "~/constants/generation";
 import { useLogoStore } from "~/store/logo-store";
 import cn from "~/utils/cn";
 

@@ -5,7 +5,7 @@ import { ActivityIndicator, Pressable, Text, TouchableOpacity, View } from "reac
 
 import ImageLoadingIndicator from "./ImageLoadingIndicator";
 
-import { BLUR_INTENSITY, GRADIENT_COLORS } from "~/constants/logo";
+import { BLUR_INTENSITY, GRADIENT_COLORS } from "~/constants/generation";
 import { useLogoStore } from "~/store/logo-store";
 import cn from "~/utils/cn";
 
