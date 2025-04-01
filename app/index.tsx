@@ -4,7 +4,6 @@ import { Stack, router } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 import {
   ActivityIndicator,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -16,14 +15,14 @@ import {
 
 import Button from "~/components/Button";
 import Container from "~/components/Container";
-import FirebaseImage from "~/components/FirebaseImage";
+import LogoStylesSection from "~/components/LogoStylesSection";
+import PreviousProjects from "~/components/PreviousProjects";
 import ProjectStatusIndicator from "~/components/ProjectStatusIndicator";
 import SparkleIcon from "~/components/SparkleIcon";
 import {
   BLUR_INTENSITY,
   DEFAULT_PROMPT,
   GRADIENT_COLORS,
-  LOGO_STYLES,
   MAX_PROMPT_LENGTH,
 } from "~/constants/generation";
 import { useAuthContext } from "~/context/AuthContext";
@@ -31,15 +30,7 @@ import { useGenerateLogo } from "~/hooks/useGenerateLogo";
 import { useGeneratePrompt } from "~/hooks/useGeneratePrompt";
 import { useProjects } from "~/hooks/useProjects";
 import { useLogoStore } from "~/store/logo-store";
-import {
-  Generation,
-  LogoFormValues,
-  LogoStyle,
-  LogoStylesSectionProps,
-  PreviousProjectsSectionProps,
-  PromptInputSectionProps,
-} from "~/types/generation";
-import cn from "~/utils/cn";
+import { LogoFormValues, LogoStyle, PromptInputSectionProps } from "~/types/generation";
 
 export default function LogoGenerator() {
   const { control, handleSubmit, setValue, watch } = useForm<LogoFormValues>({
@@ -101,8 +92,8 @@ export default function LogoGenerator() {
         className="flex-1">
         <Text className="mb-4 text-center text-xl font-semibold text-white">AI Logo</Text>
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-          <ProjectStatusIndicatorSection onTryAgain={handleTryAgain} />
-          <PreviousProjectsSection
+          <ProjectStatusIndicator onTryAgain={handleTryAgain} />
+          <PreviousProjects
             projects={projects}
             isLoading={isProjectsLoading}
             isGenerating={isLogoGenerating}
@@ -213,130 +204,6 @@ function PromptInputSection({ control, onSurpriseMe, isGenerating }: PromptInput
           />
         </BlurView>
       </View>
-    </View>
-  );
-}
-
-function LogoStylesSection({ control, selectedStyle }: LogoStylesSectionProps) {
-  const renderStyleItem = (style: (typeof LOGO_STYLES)[0]) => (
-    <Controller
-      key={style.id}
-      control={control}
-      name="style"
-      render={({ field: { onChange } }) => (
-        <TouchableOpacity
-          className={cn(
-            "mr-4 items-center",
-            selectedStyle === style.id ? "opacity-100" : "opacity-80"
-          )}
-          onPress={() => onChange(style.id)}>
-          <View
-            className={cn(
-              "h-[100px] w-[100px] overflow-hidden rounded-3xl",
-              selectedStyle === style.id ? "border-2 border-white" : "border border-gray-600",
-              style.id === "none" ? "bg-[#1E1836]" : "bg-[#2A2542]"
-            )}>
-            <Image source={style.image} className="h-full w-full" resizeMode="cover" />
-          </View>
-          <Text
-            className={cn(
-              "mt-1 text-center text-[13px]",
-              selectedStyle === style.id ? "font-[700px] text-white" : "font-[400px] text-gray-400"
-            )}>
-            {style.label}
-          </Text>
-        </TouchableOpacity>
-      )}
-    />
-  );
-
-  return (
-    <View className="mb-6">
-      <Text className="mb-2 text-[20px] font-[600px] text-white">Logo Styles</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
-        {LOGO_STYLES.map(renderStyleItem)}
-      </ScrollView>
-    </View>
-  );
-}
-
-function ProjectStatusIndicatorSection({ onTryAgain }: { onTryAgain?: () => void }) {
-  const { isLoading: isProjectsLoading } = useProjects();
-
-  if (isProjectsLoading) {
-    return (
-      <View className="mb-4">
-        <View className="overflow-hidden rounded-xl">
-          <LinearGradient
-            colors={GRADIENT_COLORS.primary as readonly [string, string]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            className="absolute h-full w-full"
-          />
-          <BlurView intensity={BLUR_INTENSITY} tint="dark" className="flex-row p-4">
-            <View className="mr-2 h-10 w-10 animate-pulse rounded-lg bg-white/20" />
-            <View className="flex-1">
-              <View className="mb-2 h-4 w-36 animate-pulse rounded-md bg-white/20" />
-              <View className="h-3 w-24 animate-pulse rounded-md bg-white/20" />
-            </View>
-          </BlurView>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View className="mb-4">
-      <ProjectStatusIndicator onTryAgain={onTryAgain} />
-    </View>
-  );
-}
-
-function PreviousProjectsSection({
-  projects,
-  isLoading,
-  isGenerating,
-  onProjectClick,
-}: PreviousProjectsSectionProps) {
-  const { currentGeneration } = useLogoStore();
-
-  if (isGenerating || currentGeneration.status === "processing") {
-    return null;
-  }
-
-  if (!projects.length && !isLoading) {
-    return null;
-  }
-
-  const renderProjectItem = (project: Generation) => (
-    <TouchableOpacity
-      key={project.id}
-      onPress={() => onProjectClick(project)}
-      className="mr-3 h-[100px] w-[100px] overflow-hidden rounded-xl">
-      <View className="relative h-full w-full">
-        <FirebaseImage uri={project.imageUrl} />
-        <View className="absolute bottom-0 w-full bg-black/50 p-2">
-          <Text className="text-xs text-white" numberOfLines={1}>
-            {project.prompt}
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-
-  return (
-    <View className="mb-4">
-      <Text className="mb-2 text-[20px] font-[600px] text-white">Your Projects</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {isLoading
-          ? [1, 2, 3, 4].map((item) => (
-              <View
-                key={item}
-                className="mr-3 h-[100px] w-[100px] animate-pulse overflow-hidden rounded-xl bg-gray-800/50"
-              />
-            ))
-          : projects.map(renderProjectItem)}
-      </ScrollView>
     </View>
   );
 }

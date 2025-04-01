@@ -111,7 +111,6 @@ export default function OutputModal() {
                 className="h-full w-full"
               />
 
-              {/* Bottom action bar with blur effect */}
               <BlurView
                 intensity={BLUR_INTENSITY}
                 tint="dark"

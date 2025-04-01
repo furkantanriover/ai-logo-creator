@@ -6,6 +6,7 @@ import { ActivityIndicator, Pressable, Text, TouchableOpacity, View } from "reac
 import FirebaseImage from "./FirebaseImage";
 
 import { BLUR_INTENSITY, GRADIENT_COLORS } from "~/constants/generation";
+import { useProjects } from "~/hooks/useProjects";
 import { useLogoStore } from "~/store/logo-store";
 import cn from "~/utils/cn";
 
@@ -13,8 +14,9 @@ type StatusIndicatorProps = {
   onTryAgain?: () => void;
 };
 
-export default function StatusIndicator({ onTryAgain }: StatusIndicatorProps) {
+export default function ProjectStatusIndicator({ onTryAgain }: StatusIndicatorProps) {
   const { currentGeneration, latestProject, resetCurrentGeneration } = useLogoStore();
+  const { isLoading: isProjectsLoading } = useProjects();
 
   const handleTryAgain = () => {
     if (onTryAgain) {
@@ -25,9 +27,32 @@ export default function StatusIndicator({ onTryAgain }: StatusIndicatorProps) {
     }
   };
 
+  // Loading durumu
+  if (isProjectsLoading) {
+    return (
+      <View className="mb-4">
+        <View className="overflow-hidden rounded-xl">
+          <LinearGradient
+            colors={GRADIENT_COLORS.primary as readonly [string, string]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            className="absolute h-full w-full"
+          />
+          <BlurView intensity={BLUR_INTENSITY} tint="dark" className="flex-row p-4">
+            <View className="mr-2 h-10 w-10 animate-pulse rounded-lg bg-white/20" />
+            <View className="flex-1">
+              <View className="mb-2 h-4 w-36 animate-pulse rounded-md bg-white/20" />
+              <View className="h-3 w-24 animate-pulse rounded-md bg-white/20" />
+            </View>
+          </BlurView>
+        </View>
+      </View>
+    );
+  }
+
   if (currentGeneration.status === "idle" && latestProject) {
     return (
-      <View className="overflow-hidden rounded-xl">
+      <View className="mb-4 overflow-hidden rounded-xl">
         <LinearGradient
           colors={GRADIENT_COLORS.secondary as [string, string, ...string[]]}
           start={{ x: 0, y: 0 }}
@@ -69,7 +94,7 @@ export default function StatusIndicator({ onTryAgain }: StatusIndicatorProps) {
 
   if (currentGeneration.status === "processing") {
     return (
-      <View className="overflow-hidden rounded-xl">
+      <View className="mb-4 overflow-hidden rounded-xl">
         <BlurView intensity={BLUR_INTENSITY} tint="systemThickMaterialDark" className="flex-row ">
           <ActivityIndicator size="small" color="#fff" className=" mr-4 h-20 w-20 bg-[#18181B]" />
           <View className="flex-1 justify-center">
@@ -83,7 +108,7 @@ export default function StatusIndicator({ onTryAgain }: StatusIndicatorProps) {
 
   if (currentGeneration.status === "done") {
     return (
-      <View className="overflow-hidden rounded-xl">
+      <View className="mb-4 overflow-hidden rounded-xl">
         <LinearGradient
           colors={GRADIENT_COLORS.secondary as [string, string, ...string[]]}
           start={{ x: 0, y: 0 }}
@@ -127,7 +152,7 @@ export default function StatusIndicator({ onTryAgain }: StatusIndicatorProps) {
 
   if (currentGeneration.status === "error") {
     return (
-      <View className="overflow-hidden rounded-xl">
+      <View className="mb-4 overflow-hidden rounded-xl">
         <TouchableOpacity onPress={handleTryAgain} className="w-full">
           <BlurView intensity={BLUR_INTENSITY} tint="systemThickMaterialDark" className="flex-row ">
             <BlurView intensity={BLUR_INTENSITY} tint="extraLight" className="flex-row  ">
