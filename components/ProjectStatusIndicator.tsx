@@ -1,6 +1,7 @@
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import React, { useCallback, useMemo } from "react";
 import { ActivityIndicator, Pressable, Text, TouchableOpacity, View } from "react-native";
 
 import FirebaseImage from "./FirebaseImage";
@@ -14,161 +15,236 @@ type StatusIndicatorProps = {
   onTryAgain?: () => void;
 };
 
+// Define types for better type safety
+type Project = {
+  id: string;
+  prompt: string;
+  imageUrl?: string;
+};
+
+type Generation = {
+  status: "idle" | "processing" | "done" | "error";
+  projectId?: string;
+  logoUrl?: string;
+};
+
 export default function ProjectStatusIndicator({ onTryAgain }: StatusIndicatorProps) {
   const { currentGeneration, latestProject, resetCurrentGeneration } = useLogoStore();
   const { isLoading: isProjectsLoading } = useProjects();
 
-  const handleTryAgain = () => {
+  const handleTryAgain = useCallback(() => {
     if (onTryAgain) {
       onTryAgain();
     } else {
       resetCurrentGeneration();
       router.replace("/");
     }
-  };
+  }, [onTryAgain, resetCurrentGeneration]);
 
-  // Loading durumu
-  if (isProjectsLoading) {
-    return (
-      <View className="mb-4">
-        <View className="overflow-hidden rounded-xl">
-          <LinearGradient
-            colors={GRADIENT_COLORS.primary as readonly [string, string]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            className="absolute h-full w-full"
-          />
-          <BlurView intensity={BLUR_INTENSITY} tint="dark" className="flex-row p-4">
-            <View className="mr-2 h-10 w-10 animate-pulse rounded-lg bg-white/20" />
-            <View className="flex-1">
-              <View className="mb-2 h-4 w-36 animate-pulse rounded-md bg-white/20" />
-              <View className="h-3 w-24 animate-pulse rounded-md bg-white/20" />
-            </View>
-          </BlurView>
-        </View>
-      </View>
-    );
-  }
+  // Use useMemo to determine which component to render
+  const statusComponent = useMemo(() => {
+    if (isProjectsLoading) {
+      return <LoadingIndicator />;
+    }
 
-  if (currentGeneration.status === "idle" && latestProject) {
-    return (
-      <View className="mb-4 overflow-hidden rounded-xl">
-        <LinearGradient
-          colors={GRADIENT_COLORS.secondary as [string, string, ...string[]]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          className="absolute h-full w-full">
-          <Pressable
-            className="w-full"
-            onPress={() =>
-              router.push({
-                pathname: "/output-modal",
-                params: { projectId: latestProject.id },
-              })
-            }>
-            {({ pressed }) => (
-              <BlurView
-                intensity={30}
-                tint="dark"
-                className={cn("flex-row ", pressed ? "opacity-70" : "opacity-100")}>
-                <View className=" mr-4 h-20 w-20 items-center justify-center overflow-hidden bg-white/20">
-                  {latestProject.imageUrl ? (
-                    <FirebaseImage uri={latestProject.imageUrl} resizeMode="contain" />
-                  ) : (
-                    <Text className="font-semibold text-white">✓</Text>
-                  )}
-                </View>
-                <View className="flex-1 justify-center">
-                  <Text className="text-base font-medium text-white">Your Latest Project</Text>
-                  <Text className="text-sm text-gray-300" numberOfLines={1}>
-                    {latestProject.prompt}
-                  </Text>
-                </View>
-              </BlurView>
-            )}
-          </Pressable>
-        </LinearGradient>
-      </View>
-    );
-  }
+    if (currentGeneration.status === "idle" && latestProject && "id" in latestProject) {
+      return <LatestProject project={latestProject as Project} />;
+    }
 
-  if (currentGeneration.status === "processing") {
-    return (
-      <View className="mb-4 overflow-hidden rounded-xl">
-        <BlurView intensity={BLUR_INTENSITY} tint="systemThickMaterialDark" className="flex-row ">
-          <ActivityIndicator size="small" color="#fff" className=" mr-4 h-20 w-20 bg-[#18181B]" />
-          <View className="flex-1 justify-center">
-            <Text className="text-base font-medium text-white">Creating Your Design...</Text>
-            <Text className="text-sm text-gray-300">Ready in 2 minutes</Text>
-          </View>
-        </BlurView>
-      </View>
-    );
-  }
+    if (currentGeneration.status === "processing") {
+      return <ProcessingIndicator />;
+    }
 
-  if (currentGeneration.status === "done") {
-    return (
-      <View className="mb-4 overflow-hidden rounded-xl">
-        <LinearGradient
-          colors={GRADIENT_COLORS.secondary as [string, string, ...string[]]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          className="absolute h-full w-full">
-          <Pressable
-            className="w-full"
-            onPress={() => {
-              if (currentGeneration.projectId) {
-                router.push({
-                  pathname: "/output-modal",
-                  params: { projectId: currentGeneration.projectId },
-                });
-              } else {
-                router.push("/output-modal");
-              }
-            }}>
-            {({ pressed }) => (
-              <BlurView
-                intensity={30}
-                tint="dark"
-                className={cn("flex-row ", pressed ? "opacity-70" : "opacity-100")}>
-                <View className="mr-4 h-20 w-20 items-center justify-center overflow-hidden  bg-white/20">
-                  {currentGeneration.logoUrl ? (
-                    <FirebaseImage uri={currentGeneration.logoUrl} resizeMode="contain" />
-                  ) : (
-                    <Text className="font-semibold text-white">✓</Text>
-                  )}
-                </View>
-                <View className="flex-1 justify-center">
-                  <Text className="text-base font-medium text-white">Your Design is Ready!</Text>
-                  <Text className="text-sm text-gray-300">Tap to see it.</Text>
-                </View>
-              </BlurView>
-            )}
-          </Pressable>
-        </LinearGradient>
-      </View>
-    );
-  }
+    if (currentGeneration.status === "done") {
+      return <CompletedProject generation={currentGeneration} />;
+    }
 
-  if (currentGeneration.status === "error") {
-    return (
-      <View className="mb-4 overflow-hidden rounded-xl">
-        <TouchableOpacity onPress={handleTryAgain} className="w-full">
-          <BlurView intensity={BLUR_INTENSITY} tint="systemThickMaterialDark" className="flex-row ">
-            <BlurView intensity={BLUR_INTENSITY} tint="extraLight" className="flex-row  ">
-              <View className=" h-20 w-20 items-center justify-center bg-[#EF4444B2]/90">
-                <Text className="text-2xl text-white">!</Text>
-              </View>
-            </BlurView>
-            <View className="flex-1 justify-center bg-[#EF4444] pl-4">
-              <Text className="text-base font-medium text-white">Oops, something went wrong!</Text>
-              <Text className="text-sm text-gray-300">Click to try again.</Text>
-            </View>
-          </BlurView>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+    if (currentGeneration.status === "error") {
+      return <ErrorIndicator onTryAgain={handleTryAgain} />;
+    }
 
-  return null;
+    return null;
+  }, [isProjectsLoading, currentGeneration, latestProject, handleTryAgain]);
+
+  return statusComponent;
 }
+
+type StatusContainerProps = {
+  gradientColors?: readonly [string, string] | [string, string, ...string[]];
+  leftContent: React.ReactNode;
+  title: React.ReactNode;
+  subtitle: React.ReactNode;
+  onPress?: () => void;
+  blurIntensity?: number;
+  blurTint?: "dark" | "light" | "default" | "systemThickMaterialDark" | "extraLight";
+  customBackground?: string;
+};
+
+const defaultGradientConfig = {
+  start: { x: 0, y: 0 },
+  end: { x: 1, y: 0 },
+};
+
+const StatusContainer = React.memo(function StatusContainer({
+  gradientColors,
+  leftContent,
+  title,
+  subtitle,
+  onPress,
+  blurIntensity = BLUR_INTENSITY,
+  blurTint = "dark",
+  customBackground,
+}: StatusContainerProps) {
+  const content = useMemo(
+    () => (
+      <BlurView
+        intensity={blurIntensity}
+        tint={blurTint}
+        className={cn("flex-row", onPress ? "w-full" : "")}>
+        <View className={cn("mr-4 h-20 w-20 items-center justify-center", customBackground || "")}>
+          {leftContent}
+        </View>
+        <View className="flex-1 justify-center">
+          <Text className="text-base font-medium text-white">{title}</Text>
+          <Text className="text-sm text-gray-300" numberOfLines={1}>
+            {subtitle}
+          </Text>
+        </View>
+      </BlurView>
+    ),
+    [blurIntensity, blurTint, onPress, customBackground, leftContent, title, subtitle]
+  );
+
+  const renderPressableContent = useCallback(
+    ({ pressed }: { pressed: boolean }) => (
+      <View className={cn(pressed ? "opacity-70" : "opacity-100")}>{content}</View>
+    ),
+    [content]
+  );
+
+  return (
+    <View className="mb-4 overflow-hidden rounded-xl">
+      {gradientColors ? (
+        <LinearGradient
+          colors={gradientColors}
+          {...defaultGradientConfig}
+          className="absolute h-full w-full">
+          {onPress ? (
+            <Pressable className="w-full" onPress={onPress}>
+              {renderPressableContent}
+            </Pressable>
+          ) : (
+            content
+          )}
+        </LinearGradient>
+      ) : onPress ? (
+        <TouchableOpacity onPress={onPress} className="w-full">
+          {content}
+        </TouchableOpacity>
+      ) : (
+        content
+      )}
+    </View>
+  );
+});
+
+// Memoize individual indicator components
+const LoadingIndicator = React.memo(function LoadingIndicator() {
+  return (
+    <StatusContainer
+      gradientColors={GRADIENT_COLORS.primary as readonly [string, string]}
+      leftContent={<View className="mr-2 h-10 w-10 animate-pulse rounded-lg bg-white/20" />}
+      title={<View className="mb-2 h-4 w-36 animate-pulse rounded-md bg-white/20" />}
+      subtitle={<View className="h-3 w-24 animate-pulse rounded-md bg-white/20" />}
+    />
+  );
+});
+
+const LatestProject = React.memo(function LatestProject({ project }: { project: Project }) {
+  const handlePress = useCallback(() => {
+    router.push({
+      pathname: "/output-modal",
+      params: { projectId: project.id },
+    });
+  }, [project.id]);
+
+  return (
+    <StatusContainer
+      gradientColors={GRADIENT_COLORS.secondary as [string, string, ...string[]]}
+      leftContent={
+        project.imageUrl ? (
+          <FirebaseImage uri={project.imageUrl} resizeMode="contain" />
+        ) : (
+          <Text className="font-semibold text-white">✓</Text>
+        )
+      }
+      title="Your Latest Project"
+      subtitle={project.prompt}
+      onPress={handlePress}
+      blurIntensity={30}
+    />
+  );
+});
+
+const ProcessingIndicator = React.memo(function ProcessingIndicator() {
+  return (
+    <StatusContainer
+      leftContent={<ActivityIndicator size="small" color="#fff" />}
+      title="Creating Your Design..."
+      subtitle="Ready in 2 minutes"
+      blurTint="systemThickMaterialDark"
+      customBackground="bg-[#18181B]"
+    />
+  );
+});
+
+const CompletedProject = React.memo(function CompletedProject({
+  generation,
+}: {
+  generation: Generation;
+}) {
+  const handlePress = useCallback(() => {
+    if (generation.projectId) {
+      router.push({
+        pathname: "/output-modal",
+        params: { projectId: generation.projectId },
+      });
+    } else {
+      router.push("/output-modal");
+    }
+  }, [generation.projectId]);
+
+  return (
+    <StatusContainer
+      gradientColors={GRADIENT_COLORS.secondary as [string, string, ...string[]]}
+      leftContent={
+        generation.logoUrl ? (
+          <FirebaseImage uri={generation.logoUrl} resizeMode="contain" />
+        ) : (
+          <Text className="font-semibold text-white">✓</Text>
+        )
+      }
+      title="Your Design is Ready!"
+      subtitle="Tap to see it."
+      onPress={handlePress}
+      blurIntensity={30}
+    />
+  );
+});
+
+const ErrorIndicator = React.memo(function ErrorIndicator({
+  onTryAgain,
+}: {
+  onTryAgain: () => void;
+}) {
+  return (
+    <StatusContainer
+      leftContent={<Text className="text-2xl text-white">!</Text>}
+      title="Oops, something went wrong!"
+      subtitle="Click to try again."
+      onPress={onTryAgain}
+      blurTint="systemThickMaterialDark"
+      customBackground="bg-[#EF4444B2]/90"
+    />
+  );
+});

@@ -1,5 +1,5 @@
-import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
+import { useState, useEffect, useCallback, useMemo } from "react";
 
 export interface AuthState {
   initializing: boolean;
@@ -27,15 +27,15 @@ export function useAuth(): AuthState {
     try {
       setError(null);
       await auth().signInAnonymously();
-      console.log('User signed in anonymously');
+      console.log("User signed in anonymously");
     } catch (error: any) {
-      const errorMessage = error.message || 'Anonim giriş yapılırken bir hata oluştu';
+      const errorMessage = error.message || "Anonim giriş yapılırken bir hata oluştu";
 
-      if (error.code === 'auth/operation-not-allowed') {
-        console.log('Enable anonymous in your firebase console.');
-        setError('Anonim giriş devre dışı. Firebase konsolunda etkinleştirin.');
+      if (error.code === "auth/operation-not-allowed") {
+        console.log("Enable anonymous in your firebase console.");
+        setError("Anonim giriş devre dışı. Firebase konsolunda etkinleştirin.");
       } else {
-        console.error('Auth error:', error);
+        console.error("Auth error:", error);
         setError(errorMessage);
       }
     }
@@ -45,10 +45,10 @@ export function useAuth(): AuthState {
     try {
       setError(null);
       await auth().signOut();
-      console.log('User signed out!');
+      console.log("User signed out!");
     } catch (error: any) {
-      const errorMessage = error.message || 'Çıkış yapılırken bir hata oluştu';
-      console.error('Error signing out:', error);
+      const errorMessage = error.message || "Çıkış yapılırken bir hata oluştu";
+      console.error("Error signing out:", error);
       setError(errorMessage);
     }
   }, []);
