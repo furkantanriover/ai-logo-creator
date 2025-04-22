@@ -28,6 +28,7 @@ export default function Layout() {
                     backgroundColor: "#0F0B21",
                   },
                 }}>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="output-modal" options={OUTPUT_MODAL_OPTIONS} />
               </Stack>
             </SafeAreaProvider>

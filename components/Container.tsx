@@ -20,7 +20,7 @@ export default function Container({
   return (
     <ImageBackground
       source={require("~/assets/bg-gradient.png")}
-      className="flex-1"
+      className="flex-1 bg-[#0F0B21]"
       resizeMode="cover">
       <SafeAreaView className="flex-1">
         <View

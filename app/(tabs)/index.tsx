@@ -1,6 +1,6 @@
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import { Stack, router } from "expo-router";
+import { router } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 import {
   ActivityIndicator,
@@ -12,11 +12,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Animated, { FadeIn, FadeInRight } from "react-native-reanimated";
 
 import Button from "~/components/Button";
 import Container from "~/components/Container";
+import FirebaseImage from "~/components/FirebaseImage";
 import LogoStylesSection from "~/components/LogoStylesSection";
-import PreviousProjects from "~/components/PreviousProjects";
 import ProjectStatusIndicator from "~/components/ProjectStatusIndicator";
 import SparkleIcon from "~/components/SparkleIcon";
 import {
@@ -31,6 +32,18 @@ import { useGeneratePrompt } from "~/hooks/useGeneratePrompt";
 import { useProjects } from "~/hooks/useProjects";
 import { useLogoStore } from "~/store/logo-store";
 import { LogoFormValues, LogoStyle, PromptInputSectionProps } from "~/types/generation";
+
+// Define project type to match what comes from useProjects
+type Project = {
+  id: string;
+  prompt?: string;
+  imageUrl?: string;
+  createdAt?: {
+    toDate?: () => Date;
+  };
+  // Add other possible fields
+  [key: string]: any;
+};
 
 export default function LogoGenerator() {
   const { control, handleSubmit, setValue, watch } = useForm<LogoFormValues>({
@@ -76,34 +89,88 @@ export default function LogoGenerator() {
     resetCurrentGeneration();
   };
 
+  const recentProjects = projects.slice(0, 3); // Get most recent 3 projects
+
   return (
     <Container padded>
-      <Stack.Screen
-        options={{
-          headerShown: false,
-          title: "AI Logo",
-          headerTitleStyle: { color: "white" },
-          headerTintColor: "white",
-        }}
-      />
-
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1">
-        <Text className="mb-4 text-center text-xl font-semibold text-white">AI Logo</Text>
+        <Text className="mb-4 text-center text-xl font-semibold text-white">AI Logo Creator</Text>
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           <ProjectStatusIndicator onTryAgain={handleTryAgain} />
-          <PreviousProjects
-            projects={projects}
-            isLoading={isProjectsLoading}
-            isGenerating={isLogoGenerating}
-            onProjectClick={(project) => {
-              router.push({
-                pathname: "/output-modal",
-                params: { projectId: project.id },
-              });
-            }}
-          />
+
+          {/* Recent Projects Section */}
+          {recentProjects.length > 0 && (
+            <Animated.View entering={FadeInRight.delay(300).springify()} className="mb-6">
+              <View className="mb-3 flex-row items-center justify-between">
+                <Text className="text-lg font-semibold text-white">Recent Projects</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    const tabBarRoute = "projects";
+                    // @ts-ignore - Using a direct approach to tab navigation
+                    router.navigate({ screen: tabBarRoute });
+                  }}
+                  className="rounded-full bg-indigo-500/20 px-3 py-1">
+                  <Text className="text-xs font-medium text-indigo-400">See All</Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                className="-mx-2 flex-row">
+                {recentProjects.map((project, index) => (
+                  <Animated.View
+                    key={project.id}
+                    entering={FadeIn.delay(index * 100)}
+                    className="w-40 px-2">
+                    <TouchableOpacity
+                      onPress={() =>
+                        router.push({
+                          pathname: "/output-modal",
+                          params: { projectId: project.id },
+                        })
+                      }
+                      activeOpacity={0.8}
+                      className="overflow-hidden rounded-xl">
+                      <LinearGradient
+                        colors={GRADIENT_COLORS.secondary as [string, string, ...string[]]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        className="absolute h-full w-full"
+                      />
+                      <BlurView intensity={BLUR_INTENSITY} tint="dark" className="p-3">
+                        <View className="mb-2 aspect-square w-full items-center justify-center overflow-hidden rounded-lg bg-black/20">
+                          {project.imageUrl ? (
+                            <View className="h-full w-full overflow-hidden rounded-lg">
+                              <View className="h-full w-full bg-black/20" />
+                              <View className="absolute h-full w-full items-center justify-center">
+                                <View className="h-4/5 w-4/5">
+                                  <FirebaseImage
+                                    uri={project.imageUrl}
+                                    resizeMode="contain"
+                                    className="h-full w-full"
+                                  />
+                                </View>
+                              </View>
+                            </View>
+                          ) : (
+                            <View className="h-12 w-12 items-center justify-center rounded-full bg-gray-700">
+                              <Text className="text-lg font-bold text-white">?</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text className="text-xs font-medium text-white" numberOfLines={1}>
+                          {project.prompt || "Untitled"}
+                        </Text>
+                      </BlurView>
+                    </TouchableOpacity>
+                  </Animated.View>
+                ))}
+              </ScrollView>
+            </Animated.View>
+          )}
 
           <View>
             <PromptInputSection
